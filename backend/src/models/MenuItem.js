@@ -4,7 +4,7 @@ const menuItemSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Item name is required"],
+      required: [true, "Menu item name is required"],
       trim: true
     },
     description: {
@@ -20,23 +20,29 @@ const menuItemSchema = new mongoose.Schema(
     price: {
       type: Number,
       required: [true, "Price is required"],
-      min: [0, "Price cannot be negative"]
+      min: 0
     },
     image: {
       type: String,
       default: ""
     },
+    tags: {
+      type: [String],
+      default: []
+    },
     isAvailable: {
       type: Boolean,
       default: true
     },
-    isFeatured: {
-      type: Boolean,
-      default: false
-    },
-    preparationTime: {
+    ratingAverage: {
       type: Number,
-      default: 15
+      default: 0,
+      min: 0,
+      max: 5
+    },
+    ratingCount: {
+      type: Number,
+      default: 0
     }
   },
   {

@@ -1,20 +1,22 @@
 import express from "express";
 import {
-  createMenuItem,
-  deleteMenuItem,
+  getAllMenuItems,
   getMenuItemById,
-  getMenuItems,
-  getMenuMessage,
+  createMenuItem,
   updateMenuItem,
+  deleteMenuItem
 } from "../controllers/menuController.js";
+import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", getMenuItems);
-router.get("/message", getMenuMessage);
-router.get("/:id", getMenuItemById);
-router.post("/", createMenuItem);
-router.put("/:id", updateMenuItem);
-router.delete("/:id", deleteMenuItem);
+router.route("/")
+  .get(getAllMenuItems)
+  .post(protect, adminOnly, createMenuItem);
+
+router.route("/:id")
+  .get(getMenuItemById)
+  .put(protect, adminOnly, updateMenuItem)
+  .delete(protect, adminOnly, deleteMenuItem);
 
 export default router;
