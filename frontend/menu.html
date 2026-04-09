@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RestaurantHub - Menu</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+  
+  <main class="container">
+    <div class="page-header">
+      <h1 class="page-title">Restaurant Menu</h1>
+      <p class="page-subtitle">Browse, search, and filter dishes available in the system.</p>
+    </div>
+
+    <section class="section">
+      <div class="toolbar">
+        <input id="searchInput" type="text" placeholder="Search by dish name or description">
+        <select id="categoryFilter"></select>
+        <select id="sortFilter">
+          <option value="ratingDesc">Sort by Rating</option>
+          <option value="priceAsc">Price: Low to High</option>
+          <option value="priceDesc">Price: High to Low</option>
+          <option value="nameAsc">Name: A to Z</option>
+        </select>
+        <label class="form-card" style="display:flex;align-items:center;gap:0.75rem;">
+          <input id="availabilityFilter" type="checkbox" style="width:auto;"> Available only
+        </label>
+      </div>
+      <div id="menuList" class="grid grid-4"></div>
+    </section>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/recommendation.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/menu.js"></script>
+</body>
+</html>

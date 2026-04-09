@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RestaurantHub - Booking</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+  
+  <main class="container">
+    <div class="page-header">
+      <h1 class="page-title">Book a Table</h1>
+      <p class="page-subtitle">Reserve your dining slot through the restaurant booking module.</p>
+    </div>
+
+    <div id="bookingMessage" class="message hide"></div>
+
+    <section class="section">
+      <form id="bookingForm" class="form-card form-grid">
+        <div class="form-group">
+          <label for="customerName">Full Name</label>
+          <input id="customerName" type="text" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" required>
+        </div>
+        <div class="form-group">
+          <label for="bookingDate">Booking Date</label>
+          <input id="bookingDate" type="date" required>
+        </div>
+        <div class="form-group">
+          <label for="bookingTime">Booking Time</label>
+          <input id="bookingTime" type="time" required>
+        </div>
+        <div class="form-group">
+          <label for="numberOfGuests">Number of Guests</label>
+          <input id="numberOfGuests" type="number" min="1" max="20" required>
+        </div>
+        <div class="form-group full">
+          <label for="specialRequest">Special Request</label>
+          <textarea id="specialRequest" placeholder="Optional dining notes"></textarea>
+        </div>
+        <div class="form-group full">
+          <button class="btn btn-primary" type="submit">Submit Booking</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/recommendation.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/booking.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RestaurantHub - Admin Dashboard</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="container">
+    <div class="page-header">
+      <h1 class="page-title">Admin Dashboard</h1>
+      <p class="page-subtitle">Monitor menu items, orders, bookings, and reviews from one place.</p>
+    </div>
+
+    <section class="section">
+      <div id="adminStats" class="stats-grid"></div>
+    </section>
+
+    <section class="section">
+      <div class="page-header" style="padding-top: 0;">
+        <h2 class="section-title">Recent Orders</h2>
+      </div>
+      <div id="recentOrders"></div>
+    </section>
+
+    <section class="section">
+      <div class="page-header" style="padding-top: 0;">
+        <h2 class="section-title">Recent Bookings</h2>
+      </div>
+      <div id="recentBookings"></div>
+    </section>
+
+    <section class="section">
+      <div class="page-header" style="padding-top: 0;">
+        <h2 class="section-title">Recent Reviews</h2>
+      </div>
+      <div id="recentReviews" class="list"></div>
+    </section>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/recommendation.js"></script>
+  <script src="../assets/js/main.js"></script>
+  <script src="../assets/js/admin-dashboard.js"></script>
+</body>
+</html>

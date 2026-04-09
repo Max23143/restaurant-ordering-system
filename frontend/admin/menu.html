@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RestaurantHub - Admin Menu Management</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="container">
+    <div class="page-header">
+      <h1 class="page-title">Admin Menu Management</h1>
+      <p class="page-subtitle">Create, update, and delete menu items for the restaurant.</p>
+    </div>
+
+    <div id="adminMenuMessage" class="message hide"></div>
+
+    <section class="section grid grid-2">
+      <section class="form-card">
+        <h2 class="section-title">Add / Edit Menu Item</h2>
+
+        <form id="menuForm" class="form-grid">
+          <input type="hidden" id="menuItemId">
+
+          <div class="form-group">
+            <label for="menuName">Dish Name</label>
+            <input id="menuName" type="text" required>
+          </div>
+
+          <div class="form-group">
+            <label for="menuCategory">Category</label>
+            <select id="menuCategory" required>
+              <option value="Pizza">Pizza</option>
+              <option value="Burger">Burger</option>
+              <option value="Pasta">Pasta</option>
+              <option value="Dessert">Dessert</option>
+              <option value="Drinks">Drinks</option>
+              <option value="Salad">Salad</option>
+              <option value="Main Course">Main Course</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="menuPrice">Price</label>
+            <input id="menuPrice" type="number" min="0" step="0.01" required>
+          </div>
+
+          <div class="form-group">
+            <label for="menuImage">Image URL</label>
+            <input id="menuImage" type="text" placeholder="https://example.com/image.jpg">
+          </div>
+
+          <div class="form-group full">
+            <label for="menuDescription">Description</label>
+            <textarea id="menuDescription" required></textarea>
+          </div>
+
+          <div class="form-group full">
+            <label for="menuTags">Tags (comma separated)</label>
+            <input id="menuTags" type="text" placeholder="spicy, cheesy, grilled">
+          </div>
+
+          <div class="form-group full" style="display:flex;align-items:center;gap:0.75rem;">
+            <input id="menuAvailable" type="checkbox" checked style="width:auto;">
+            <label for="menuAvailable" style="margin:0;">Available</label>
+          </div>
+
+          <div class="form-group full">
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">Save Item</button>
+              <button class="btn btn-secondary" type="button" id="resetMenuFormBtn">Reset</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section>
+        <h2 class="section-title">Current Menu Items</h2>
+        <div id="adminMenuList" class="list"></div>
+      </section>
+    </section>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/recommendation.js"></script>
+  <script src="../assets/js/main.js"></script>
+  <script src="../assets/js/admin-menu.js"></script>
+</body>
+</html>

@@ -1,5 +1,18 @@
 const errorHandler = (err, req, res, next) => {
-  const statusCode = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
+  let statusCode = err.statusCode || res.statusCode;
+
+  if (!statusCode || statusCode === 200) {
+    statusCode = 500;
+  }
+
+  if (err.code === 11000) {
+    statusCode = 400;
+    err.message = "A user with this email already exists.";
+  }
+
+  if (err.name === "ValidationError") {
+    statusCode = 400;
+  }
 
   res.status(statusCode).json({
     success: false,
