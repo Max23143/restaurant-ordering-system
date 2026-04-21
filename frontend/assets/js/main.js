@@ -1,52 +1,68 @@
-function getNavLinks(basePath = "") {
-  return [
-    { href: `${basePath}index.html`, label: "Home" },
-    { href: `${basePath}menu.html`, label: "Menu" },
-    { href: `${basePath}cart.html`, label: "Cart" },
-    { href: `${basePath}booking.html`, label: "Booking" },
-    { href: `${basePath}reviews.html`, label: "Reviews" },
-    { href: `${basePath}order-history.html`, label: "My Orders" },
-    { href: `${basePath}login.html`, label: "Login" }
+function getNavLinks(isLoggedIn = false, role = "customer") {
+  const links = [
+    { file: "index.html", label: "Home" },
+    { file: "menu.html", label: "Menu" },
+    { file: "booking.html", label: "Booking" },
+    { file: "reviews.html", label: "Reviews" }
   ];
+
+  if (isLoggedIn) {
+    links.push({ file: "order-history.html", label: "My Orders" });
+  }
+
+  if (role === "admin") {
+    links.push({ file: "admin/dashboard.html", label: "Admin" });
+  }
+
+  if (!isLoggedIn) {
+    links.push({ file: "login.html", label: "Login" });
+    links.push({ file: "register.html", label: "Register" });
+  }
+
+  return links;
 }
 
-function renderNavbar(basePath = "") {
+function isLinkActive(file) {
+  const pathname = window.location.pathname.toLowerCase();
+  return pathname.endsWith(`/${file.toLowerCase()}`) || pathname.endsWith(file.toLowerCase());
+}
+
+function renderNavbar() {
   const mount = document.getElementById("navbar");
   if (!mount) return;
 
-  const path = window.location.pathname.split("/").pop() || "index.html";
-  const links = getNavLinks(basePath)
-    .map(
-      (link) => `
-        <a href="${link.href}" class="${path === link.href.split("/").pop() ? "active" : ""}">
-          ${link.label}
-        </a>
-      `
-    )
+  const currentUser = getCurrentUser();
+  const isLoggedIn = !!currentUser;
+  const role = getUserRole();
+
+  const links = getNavLinks(isLoggedIn, role)
+    .map((link) => {
+      const href = buildFrontendUrl(link.file);
+      const activeClass = isLinkActive(link.file) ? "active" : "";
+      return `<a href="${href}" class="${activeClass}">${link.label}</a>`;
+    })
     .join("");
 
-  const role = getUserRole();
-  const currentUser = getCurrentUser();
-  const adminLink =
-    role === "admin"
-      ? `<a href="${basePath}admin/dashboard.html">Admin</a>`
-      : "";
+  const cartLink = `
+    <a href="${buildFrontendUrl("cart.html")}" class="${isLinkActive("cart.html") ? "active" : ""}">
+      Cart (<span data-cart-count>0</span>)
+    </a>
+  `;
 
-  const authBlock = currentUser
+  const authBlock = isLoggedIn
     ? `
       <span class="badge badge-muted">Hi, ${currentUser.fullName || currentUser.name || currentUser.email || "User"}</span>
       <button class="btn btn-secondary" id="logoutBtn">Logout</button>
     `
-    : `<a href="${basePath}register.html">Register</a>`;
+    : "";
 
   mount.innerHTML = `
     <header class="topbar">
       <div class="container nav">
-        <a class="brand" href="${basePath}index.html">RestaurantHub</a>
+        <a class="brand" href="${buildFrontendUrl("index.html")}">RestaurantHub</a>
         <nav class="nav-links">
           ${links}
-          ${adminLink}
-          <a href="${basePath}cart.html">Cart (<span data-cart-count>0</span>)</a>
+          ${cartLink}
           ${authBlock}
         </nav>
       </div>
@@ -57,7 +73,7 @@ function renderNavbar(basePath = "") {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       clearSession();
-      window.location.href = `${basePath}login.html`;
+      window.location.href = buildFrontendUrl("login.html");
     });
   }
 
@@ -78,7 +94,6 @@ function renderFooter() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const isAdminPage = window.location.pathname.includes("/admin/");
-  renderNavbar(isAdminPage ? "../" : "");
+  renderNavbar();
   renderFooter();
 });

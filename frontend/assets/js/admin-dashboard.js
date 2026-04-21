@@ -6,9 +6,9 @@ async function initAdminDashboard() {
   try {
     const [menuResponse, orderResponse, bookingResponse, reviewResponse] = await Promise.all([
       tryGet(["/menu", "/menu/all"]),
-      tryGet(["/orders"]),
-      tryGet(["/bookings"]),
-      tryGet(["/reviews"])
+      apiRequest("/orders/admin/all"),
+      apiRequest("/bookings/admin/all"),
+      apiRequest("/reviews/admin/all")
     ]);
 
     const menuItems = (Array.isArray(menuResponse) ? menuResponse : menuResponse.items || menuResponse.data || [])
@@ -31,21 +31,24 @@ async function initAdminDashboard() {
     renderRecentBookings(bookings);
     renderRecentReviews(reviews, menuItems);
   } catch (error) {
-    document.getElementById("adminStats").innerHTML =
-      `<div class="empty-state">Failed to load dashboard data. ${error.message}</div>`;
+    document.getElementById("adminStats").innerHTML = `
+      <div class="empty-state">
+        Failed to load dashboard data.<br>${error.message}
+      </div>
+    `;
   }
 }
 
 function protectAdminPage() {
-  if (!getToken()) {
-    alert("Please log in as admin.");
-    window.location.href = "../login.html";
+  const currentUser = getCurrentUser();
+
+  if (!currentUser || !getToken()) {
+    window.location.href = buildFrontendUrl("login.html");
     return false;
   }
 
   if (getUserRole() !== "admin") {
-    alert("Access denied. Admin only.");
-    window.location.href = "../index.html";
+    window.location.href = buildFrontendUrl("index.html");
     return false;
   }
 
@@ -69,6 +72,10 @@ function renderAdminStats(menuItems, orders, bookings, reviews) {
     <article class="summary-card">
       <h3>Total Bookings</h3>
       <p>${bookings.length}</p>
+    </article>
+    <article class="summary-card">
+      <h3>Total Reviews</h3>
+      <p>${reviews.length}</p>
     </article>
     <article class="summary-card">
       <h3>Total Revenue</h3>
@@ -105,7 +112,7 @@ function renderRecentOrders(orders) {
           ${recent.map((order) => `
             <tr>
               <td>${order._id || order.id || "N/A"}</td>
-              <td>${order.user?.name || order.customerName || order.user?.email || "Customer"}</td>
+              <td>${order.user?.fullName || order.customerName || order.user?.email || "Customer"}</td>
               <td>${formatDateTime(order.createdAt || order.orderDate)}</td>
               <td>${formatCurrency(order.totalAmount || order.total || 0)}</td>
               <td>${order.status || order.orderStatus || "Pending"}</td>
@@ -126,7 +133,7 @@ function renderRecentBookings(bookings) {
   }
 
   const recent = [...bookings]
-    .sort((a, b) => new Date(b.createdAt || `${b.bookingDate}T${b.bookingTime}` || 0) - new Date(a.createdAt || `${a.bookingDate}T${a.bookingTime}` || 0))
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     .slice(0, 8);
 
   mount.innerHTML = `
@@ -139,16 +146,18 @@ function renderRecentBookings(bookings) {
             <th>Date</th>
             <th>Time</th>
             <th>Guests</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
           ${recent.map((booking) => `
             <tr>
-              <td>${booking.customerName || booking.name || "N/A"}</td>
-              <td>${booking.email || "N/A"}</td>
-              <td>${formatDate(booking.bookingDate)}</td>
-              <td>${booking.bookingTime || "N/A"}</td>
-              <td>${booking.numberOfGuests || booking.guests || "N/A"}</td>
+              <td>${booking.fullName || booking.customerName || booking.name || "N/A"}</td>
+              <td>${booking.email || booking.user?.email || "N/A"}</td>
+              <td>${formatDate(booking.bookingDate || booking.date)}</td>
+              <td>${booking.bookingTime || booking.time || "N/A"}</td>
+              <td>${booking.numberOfGuests || booking.guestCount || booking.guests || "N/A"}</td>
+              <td>${booking.status || "Pending"}</td>
             </tr>
           `).join("")}
         </tbody>
@@ -166,7 +175,7 @@ function renderRecentReviews(reviews, menuItems) {
   }
 
   const recent = [...reviews]
-    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || a.createdAt || 0))
     .slice(0, 6);
 
   mount.innerHTML = recent.map((review) => {
@@ -180,7 +189,7 @@ function renderRecentReviews(reviews, menuItems) {
     return `
       <article class="card review-card">
         <div class="meta-row">
-          <strong>${review.user?.name || review.name || "Customer"}</strong>
+          <strong>${review.user?.fullName || review.fullName || review.name || "Customer"}</strong>
           <span class="badge">${itemName}</span>
         </div>
         <div class="rating-row">

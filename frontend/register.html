@@ -8,40 +8,33 @@
 </head>
 <body>
   <div id="navbar"></div>
-  
+
   <main class="container">
     <section class="auth-box">
       <div class="form-card">
         <h1 class="page-title">Register</h1>
         <p class="page-subtitle">Create an account for ordering and recommendations.</p>
+
         <div id="authMessage" class="message hide"></div>
 
-        <form id="registerForm" class="form-grid">
+        <form id="registerForm" class="form-grid" novalidate>
           <div class="form-group full">
             <label for="registerName">Full Name</label>
             <input id="registerName" type="text" required>
           </div>
+
           <div class="form-group full">
             <label for="registerEmail">Email</label>
             <input id="registerEmail" type="email" required>
           </div>
+
           <div class="form-group full">
             <label for="registerPassword">Password</label>
             <input id="registerPassword" type="password" required>
           </div>
+
           <div class="form-group full">
-            <label for="preferredCategory">Preferred Category</label>
-            <select id="preferredCategory">
-              <option value="">No preference</option>
-              <option value="Pizza">Pizza</option>
-              <option value="Burger">Burger</option>
-              <option value="Pasta">Pasta</option>
-              <option value="Dessert">Dessert</option>
-              <option value="Drinks">Drinks</option>
-            </select>
-          </div>
-          <div class="form-group full">
-            <button class="btn btn-primary" type="submit">Register</button>
+            <button class="btn btn-primary" id="registerBtn" type="submit">Register</button>
           </div>
         </form>
       </div>

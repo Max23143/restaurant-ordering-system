@@ -9,15 +9,15 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function protectAdminMenuPage() {
-  if (!getToken()) {
-    alert("Please log in as admin.");
-    window.location.href = "../login.html";
+  const currentUser = getCurrentUser();
+
+  if (!currentUser || !getToken()) {
+    window.location.href = buildFrontendUrl("login.html");
     return false;
   }
 
   if (getUserRole() !== "admin") {
-    alert("Access denied. Admin only.");
-    window.location.href = "../index.html";
+    window.location.href = buildFrontendUrl("index.html");
     return false;
   }
 

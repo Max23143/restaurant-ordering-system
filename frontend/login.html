@@ -8,25 +8,28 @@
 </head>
 <body>
   <div id="navbar"></div>
-  
+
   <main class="container">
     <section class="auth-box">
       <div class="form-card">
         <h1 class="page-title">Login</h1>
         <p class="page-subtitle">Access customer or admin features.</p>
+
         <div id="authMessage" class="message hide"></div>
 
-        <form id="loginForm" class="form-grid">
+        <form id="loginForm" class="form-grid" novalidate>
           <div class="form-group full">
             <label for="loginEmail">Email</label>
             <input id="loginEmail" type="email" required>
           </div>
+
           <div class="form-group full">
             <label for="loginPassword">Password</label>
             <input id="loginPassword" type="password" required>
           </div>
+
           <div class="form-group full">
-            <button class="btn btn-primary" type="submit">Login</button>
+            <button class="btn btn-primary" id="loginBtn" type="submit">Login</button>
           </div>
         </form>
       </div>

@@ -7,9 +7,13 @@ import errorHandler from "./middleware/errorHandler.js";
 
 const app = express();
 
+const clientUrl = process.env.CLIENT_URL || "http://127.0.0.1:5500";
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || "*"
+  origin: clientUrl,
+  credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));

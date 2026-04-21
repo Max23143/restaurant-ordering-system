@@ -1,6 +1,28 @@
-const API_BASE_URL = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
-  ? "http://localhost:5000/api"
-  : "/api";
+const API_BASE_URL =
+  window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
+    ? "http://localhost:5000/api"
+    : "/api";
+
+function getFrontendBasePath() {
+  const path = window.location.pathname;
+
+  if (path.includes("/frontend/")) {
+    return path.slice(0, path.indexOf("/frontend/") + "/frontend/".length);
+  }
+
+  if (path.includes("/admin/")) {
+    return path.slice(0, path.indexOf("/admin/") + 1);
+  }
+
+  return path.slice(0, path.lastIndexOf("/") + 1);
+}
+
+function buildFrontendUrl(page = "") {
+  return `${window.location.origin}${getFrontendBasePath()}${page}`;
+}
+
+window.getFrontendBasePath = getFrontendBasePath;
+window.buildFrontendUrl = buildFrontendUrl;
 
 function getToken() {
   return localStorage.getItem("token") || "";
@@ -27,29 +49,18 @@ function clearSession() {
   localStorage.removeItem("user");
 }
 
-function parseJwt(token) {
-  if (!token || token.split(".").length !== 3) return null;
-
-  try {
-    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    const json = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((char) => "%" + ("00" + char.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
-
 function getUserRole() {
   const user = getCurrentUser();
-  if (user?.role) return user.role;
+  return String(user?.role || "customer").toLowerCase();
+}
 
-  const payload = parseJwt(getToken());
-  return payload?.role || payload?.isAdmin ? "admin" : "customer";
+function redirectToLogin() {
+  const currentPath = window.location.pathname.toLowerCase();
+
+  if (currentPath.endsWith("/login.html")) return;
+  if (currentPath.endsWith("/register.html")) return;
+
+  window.location.href = buildFrontendUrl("login.html");
 }
 
 async function apiRequest(endpoint, options = {}) {
@@ -59,31 +70,51 @@ async function apiRequest(endpoint, options = {}) {
   };
 
   const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers
-  });
-
-  const contentType = response.headers.get("content-type") || "";
-  const data = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
-
-  if (!response.ok) {
-    const message =
-      data?.message ||
-      data?.error ||
-      `Request failed with status ${response.status}`;
-    throw new Error(message);
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
-  return data;
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json")
+      ? await response.json()
+      : await response.text();
+
+    if (!response.ok) {
+      const message =
+        data?.message ||
+        data?.error ||
+        `Request failed with status ${response.status}`;
+
+      if (
+        response.status === 401 ||
+        /invalid signature|jwt malformed|invalid token|jwt expired|token expired/i.test(message)
+      ) {
+        clearSession();
+        redirectToLogin();
+        throw new Error("Session expired. Please log in again.");
+      }
+
+      throw new Error(message);
+    }
+
+    return data;
+  } catch (error) {
+    if (error.name === "TypeError") {
+      throw new Error("Cannot connect to backend server.");
+    }
+    throw error;
+  }
 }
 
 async function tryGet(endpoints) {
   let lastError = null;
+
   for (const endpoint of endpoints) {
     try {
       return await apiRequest(endpoint);
@@ -91,12 +122,16 @@ async function tryGet(endpoints) {
       lastError = error;
     }
   }
+
   throw lastError || new Error("No working endpoint found.");
 }
 
 function showMessage(targetId, message, type = "info") {
   const el = document.getElementById(targetId);
-  if (!el) return;
+  if (!el) {
+    alert(message);
+    return;
+  }
 
   el.className = `message ${type}`;
   el.textContent = message;
@@ -106,6 +141,7 @@ function showMessage(targetId, message, type = "info") {
 function hideMessage(targetId) {
   const el = document.getElementById(targetId);
   if (!el) return;
+
   el.classList.add("hide");
   el.textContent = "";
 }
@@ -120,8 +156,10 @@ function formatCurrency(value) {
 
 function formatDate(value) {
   if (!value) return "N/A";
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -131,8 +169,10 @@ function formatDate(value) {
 
 function formatDateTime(value) {
   if (!value) return "N/A";
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleString("en-GB", {
     dateStyle: "medium",
     timeStyle: "short"
@@ -145,7 +185,10 @@ function normalizeMenuItem(item = {}) {
     name: item.name || item.title || "Unnamed item",
     description: item.description || "No description available.",
     category: item.category || "General",
-    image: item.image || item.imageUrl || "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80",
+    image:
+      item.image ||
+      item.imageUrl ||
+      "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80",
     price: Number(item.price || 0),
     rating: Number(item.rating || item.averageRating || 4),
     reviewsCount: Number(item.reviewsCount || item.numReviews || 0),
@@ -173,6 +216,7 @@ function saveCart(items) {
 
 function updateCartCount() {
   const count = getCart().reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
   document.querySelectorAll("[data-cart-count]").forEach((el) => {
     el.textContent = count;
   });
@@ -199,13 +243,16 @@ function removeFromCart(id) {
 
 function updateCartItemQuantity(id, quantity) {
   const cart = getCart().map((item) =>
-    item._id === id ? { ...item, quantity: Math.max(1, Number(quantity || 1)) } : item
+    item._id === id
+      ? { ...item, quantity: Math.max(1, Number(quantity || 1)) }
+      : item
   );
+
   saveCart(cart);
 }
 
 function getCartTotal() {
-  return getCart().reduce((sum, item) => sum + item.price * item.quantity, 0);
+  return getCart().reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
 }
 
 function renderStars(value = 0) {
