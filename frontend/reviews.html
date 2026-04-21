@@ -8,7 +8,7 @@
 </head>
 <body>
   <div id="navbar"></div>
-  
+
   <main class="container">
     <div class="page-header">
       <h1 class="page-title">Reviews and Ratings</h1>
@@ -20,11 +20,12 @@
         <h2 class="section-title">Leave a Review</h2>
         <div id="reviewMessage" class="message hide"></div>
 
-        <form id="reviewForm" class="form-grid">
+        <form id="reviewForm" class="form-grid" novalidate>
           <div class="form-group full">
             <label for="reviewMenuItem">Menu Item</label>
             <select id="reviewMenuItem" required></select>
           </div>
+
           <div class="form-group">
             <label for="rating">Rating</label>
             <select id="rating" required>
@@ -35,19 +36,21 @@
               <option value="1">1 - Poor</option>
             </select>
           </div>
+
           <div class="form-group full">
             <label for="comment">Comment</label>
-            <textarea id="comment" required></textarea>
+            <textarea id="comment" placeholder="Write your feedback"></textarea>
           </div>
+
           <div class="form-group full">
-            <button class="btn btn-primary" type="submit">Submit Review</button>
+            <button class="btn btn-primary" id="reviewBtn" type="submit">Submit Review</button>
           </div>
         </form>
       </section>
 
       <section>
-        <h2 class="section-title">Public Reviews</h2>
-        <div id="publicReviews" class="list"></div>
+        <h2 class="section-title">My Reviews</h2>
+        <div id="myReviews" class="list"></div>
       </section>
     </div>
   </main>

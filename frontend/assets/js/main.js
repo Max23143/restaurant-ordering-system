@@ -1,17 +1,21 @@
 function getNavLinks(isLoggedIn = false, role = "customer") {
   const links = [
     { file: "index.html", label: "Home" },
-    { file: "menu.html", label: "Menu" },
-    { file: "booking.html", label: "Booking" },
-    { file: "reviews.html", label: "Reviews" }
+    { file: "menu.html", label: "Menu" }
   ];
 
-  if (isLoggedIn) {
+  if (isLoggedIn && role !== "admin") {
+    links.push({ file: "booking.html", label: "Booking" });
+    links.push({ file: "reviews.html", label: "Reviews" });
     links.push({ file: "order-history.html", label: "My Orders" });
   }
 
   if (role === "admin") {
-    links.push({ file: "admin/dashboard.html", label: "Admin" });
+    links.push({ file: "admin/dashboard.html", label: "Admin Dashboard" });
+    links.push({ file: "admin/menu.html", label: "Admin Menu" });
+    links.push({ file: "admin/orders.html", label: "Admin Orders" });
+    links.push({ file: "admin/bookings.html", label: "Admin Bookings" });
+    links.push({ file: "admin/reviews.html", label: "Admin Reviews" });
   }
 
   if (!isLoggedIn) {
@@ -43,11 +47,13 @@ function renderNavbar() {
     })
     .join("");
 
-  const cartLink = `
-    <a href="${buildFrontendUrl("cart.html")}" class="${isLinkActive("cart.html") ? "active" : ""}">
-      Cart (<span data-cart-count>0</span>)
-    </a>
-  `;
+  const cartLink = isLoggedIn && role !== "admin"
+    ? `
+      <a href="${buildFrontendUrl("cart.html")}" class="${isLinkActive("cart.html") ? "active" : ""}">
+        Cart (<span data-cart-count>0</span>)
+      </a>
+    `
+    : "";
 
   const authBlock = isLoggedIn
     ? `

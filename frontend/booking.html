@@ -8,7 +8,7 @@
 </head>
 <body>
   <div id="navbar"></div>
-  
+
   <main class="container">
     <div class="page-header">
       <h1 class="page-title">Book a Table</h1>
@@ -18,33 +18,44 @@
     <div id="bookingMessage" class="message hide"></div>
 
     <section class="section">
-      <form id="bookingForm" class="form-card form-grid">
+      <form id="bookingForm" class="form-card form-grid" novalidate>
         <div class="form-group">
-          <label for="customerName">Full Name</label>
-          <input id="customerName" type="text" required>
+          <label for="bookingFullName">Full Name</label>
+          <input id="bookingFullName" type="text" required>
         </div>
+
         <div class="form-group">
-          <label for="email">Email</label>
-          <input id="email" type="email" required>
+          <label for="bookingEmail">Email</label>
+          <input id="bookingEmail" type="email" required>
         </div>
+
+        <div class="form-group">
+          <label for="bookingPhone">Phone</label>
+          <input id="bookingPhone" type="text" required>
+        </div>
+
         <div class="form-group">
           <label for="bookingDate">Booking Date</label>
           <input id="bookingDate" type="date" required>
         </div>
+
         <div class="form-group">
           <label for="bookingTime">Booking Time</label>
           <input id="bookingTime" type="time" required>
         </div>
+
         <div class="form-group">
-          <label for="numberOfGuests">Number of Guests</label>
-          <input id="numberOfGuests" type="number" min="1" max="20" required>
+          <label for="bookingGuests">Number of Guests</label>
+          <input id="bookingGuests" type="number" min="1" max="20" required>
         </div>
+
         <div class="form-group full">
-          <label for="specialRequest">Special Request</label>
-          <textarea id="specialRequest" placeholder="Optional dining notes"></textarea>
+          <label for="bookingNotes">Notes</label>
+          <textarea id="bookingNotes" placeholder="Optional notes or special requests"></textarea>
         </div>
+
         <div class="form-group full">
-          <button class="btn btn-primary" type="submit">Submit Booking</button>
+          <button class="btn btn-primary" id="bookingBtn" type="submit">Submit Booking</button>
         </div>
       </form>
     </section>

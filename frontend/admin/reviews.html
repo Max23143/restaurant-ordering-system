@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RestaurantHub - Admin Reviews</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="container">
+    <div class="page-header">
+      <h1 class="page-title">Admin Review Management</h1>
+      <p class="page-subtitle">Approve or unapprove customer reviews.</p>
+    </div>
+
+    <div id="adminReviewMessage" class="message hide"></div>
+
+    <section class="section">
+      <div class="toolbar">
+        <select id="reviewApprovalFilter">
+          <option value="">All Reviews</option>
+          <option value="true">Approved</option>
+          <option value="false">Not Approved</option>
+        </select>
+
+        <button class="btn btn-primary" id="refreshReviewsBtn" type="button">Refresh</button>
+      </div>
+
+      <div id="adminReviewsList" class="list"></div>
+    </section>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/recommendation.js"></script>
+  <script src="../assets/js/main.js"></script>
+  <script src="../assets/js/admin-reviews.js"></script>
+</body>
+</html>

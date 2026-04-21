@@ -1,40 +1,52 @@
+let currentDish = null;
+let allDishItems = [];
+
+document.addEventListener("DOMContentLoaded", loadDishDetails);
+
 async function loadDishDetails() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get("id");
 
+  const detailsMount = document.getElementById("dishDetails");
+  if (!detailsMount) return;
+
   if (!id) {
-    document.getElementById("dishDetails").innerHTML =
-      `<div class="empty-state">No dish ID was provided.</div>`;
+    detailsMount.innerHTML = `<div class="empty-state">No dish ID was provided.</div>`;
     return;
   }
 
   try {
     const [itemResponse, menuResponse, reviewResponse] = await Promise.all([
-      tryGet([`/menu/${id}`]),
-      tryGet(["/menu", "/menu/all"]),
-      tryGet([`/reviews?menuItem=${id}`, `/reviews/item/${id}`, "/reviews"])
+      apiRequest(`/menu/${id}`),
+      apiRequest("/menu"),
+      apiRequest(`/reviews/menu/${id}`)
     ]);
 
-    const item = normalizeMenuItem(itemResponse.item || itemResponse.data || itemResponse);
-    const allRaw = Array.isArray(menuResponse) ? menuResponse : menuResponse.items || menuResponse.data || [];
-    const allItems = allRaw.map(normalizeMenuItem);
-    const recommendations = getRecommendations(item, allItems, 4);
+    currentDish = normalizeMenuItem(itemResponse.data || {});
+    allDishItems = (menuResponse.data || []).map(normalizeMenuItem);
 
-    renderDishDetails(item);
-    renderRecommendedItems(recommendations);
-    renderItemReviews(id, reviewResponse);
+    renderDishDetails(currentDish);
+    renderRecommendedItems(getRecommendedItems(currentDish, allDishItems));
+    renderDishReviews(reviewResponse.data || []);
   } catch (error) {
-    document.getElementById("dishDetails").innerHTML =
-      `<div class="empty-state">Failed to load dish details. ${error.message}</div>`;
+    detailsMount.innerHTML = `<div class="empty-state">Failed to load dish details. ${error.message}</div>`;
   }
 }
 
 function renderDishDetails(item) {
-  document.getElementById("dishDetails").innerHTML = `
+  const mount = document.getElementById("dishDetails");
+  if (!mount) return;
+
+  mount.innerHTML = `
     <div class="detail-layout">
       <article class="card">
-        <img src="${item.image}" alt="${item.name}" style="height: 420px; width: 100%; object-fit: cover;">
+        <img
+          src="${item.image}"
+          alt="${item.name}"
+          style="height: 420px; width: 100%; object-fit: cover;"
+        >
       </article>
+
       <section class="form-card detail-panel">
         <span class="badge">${item.category}</span>
         <h1 class="page-title">${item.name}</h1>
@@ -42,7 +54,7 @@ function renderDishDetails(item) {
 
         <div class="rating-row">
           <span class="stars">${renderStars(item.rating)}</span>
-          <span>${item.rating.toFixed(1)} average rating</span>
+          <span>${Number(item.rating || 0).toFixed(1)} average rating</span>
         </div>
 
         <div class="price-row">
@@ -58,22 +70,59 @@ function renderDishDetails(item) {
         </div>
 
         <div class="form-actions" style="margin-top: 1rem;">
-          <button class="btn btn-primary" id="addToCartBtn">Add to Cart</button>
-          <a class="btn btn-secondary" href="menu.html">Back to Menu</a>
+          <button class="btn btn-primary" id="addToCartBtn" ${item.isAvailable ? "" : "disabled"}>Add to Cart</button>
+          <a class="btn btn-secondary" href="${buildFrontendUrl("menu.html")}">Back to Menu</a>
         </div>
       </section>
     </div>
   `;
 
-  document.getElementById("addToCartBtn").addEventListener("click", () => {
-    const quantity = Number(document.getElementById("quantityInput").value || 1);
-    addToCart(item, quantity);
-    alert(`${quantity} x ${item.name} added to cart.`);
+  const addBtn = document.getElementById("addToCartBtn");
+  if (addBtn) {
+    addBtn.addEventListener("click", () => {
+      const quantity = Number(document.getElementById("quantityInput")?.value || 1);
+
+      if (quantity < 1) {
+        alert("Quantity must be at least 1.");
+        return;
+      }
+
+      addToCart(item, quantity);
+      alert(`${quantity} x ${item.name} added to cart.`);
+    });
+  }
+}
+
+function getRecommendedItems(baseItem, items) {
+  return items
+    .filter((item) => item._id !== baseItem._id)
+    .sort((a, b) => getRecommendationScore(baseItem, b) - getRecommendationScore(baseItem, a))
+    .slice(0, 4);
+}
+
+function getRecommendationScore(baseItem, candidate) {
+  let score = 0;
+
+  if (baseItem.category === candidate.category) score += 5;
+  if (candidate.isAvailable) score += 2;
+  score += Number(candidate.rating || 0);
+
+  const baseWords = `${baseItem.name} ${baseItem.description} ${(baseItem.tags || []).join(" ")}`.toLowerCase();
+  const candidateWords = `${candidate.name} ${candidate.description} ${(candidate.tags || []).join(" ")}`.toLowerCase();
+
+  const keywords = ["spicy", "cheese", "grill", "fried", "sweet", "chicken", "beef", "veggie", "dessert", "drink"];
+  keywords.forEach((keyword) => {
+    if (baseWords.includes(keyword) && candidateWords.includes(keyword)) {
+      score += 1;
+    }
   });
+
+  return score;
 }
 
 function renderRecommendedItems(items) {
   const mount = document.getElementById("recommendationList");
+  if (!mount) return;
 
   if (!items.length) {
     mount.innerHTML = `<div class="empty-state">No recommendations available for this dish.</div>`;
@@ -82,46 +131,41 @@ function renderRecommendedItems(items) {
 
   mount.innerHTML = items.map((item) => `
     <article class="card">
-      <img src="${item.image}" alt="${item.name}" style="height: 200px; width: 100%; object-fit: cover;">
+      <img
+        src="${item.image}"
+        alt="${item.name}"
+        style="height: 200px; width: 100%; object-fit: cover;"
+      >
       <div class="card-body">
         <span class="badge">${item.category}</span>
         <h3 class="card-title">${item.name}</h3>
         <p class="card-text">${item.description}</p>
         <div class="price-row">
           <strong>${formatCurrency(item.price)}</strong>
-          <a class="btn btn-secondary" href="dish-details.html?id=${item._id}">View</a>
+          <a class="btn btn-secondary" href="${buildFrontendUrl(`dish-details.html?id=${item._id}`)}">View</a>
         </div>
       </div>
     </article>
   `).join("");
 }
 
-function renderItemReviews(itemId, response) {
+function renderDishReviews(reviews) {
   const mount = document.getElementById("reviewList");
-  const raw = Array.isArray(response)
-    ? response
-    : response.reviews || response.data || [];
+  if (!mount) return;
 
-  const filtered = raw.filter((review) => {
-    const reviewItem = review.menuItem?._id || review.menuItem || review.itemId;
-    return !reviewItem || reviewItem === itemId;
-  });
-
-  if (!filtered.length) {
+  if (!reviews.length) {
     mount.innerHTML = `<div class="empty-state">No reviews yet for this dish.</div>`;
     return;
   }
 
-  mount.innerHTML = filtered.map((review) => `
+  mount.innerHTML = reviews.map((review) => `
     <article class="card review-card">
       <div class="meta-row">
-        <strong>${review.user?.name || review.name || "Customer"}</strong>
+        <strong>${review.user?.fullName || review.fullName || review.name || "Customer"}</strong>
         <span class="stars">${renderStars(review.rating || 0)}</span>
       </div>
-      <p class="card-text">${review.comment || review.reviewText || "No written comment."}</p>
+      <p class="card-text">${review.comment || "No written comment."}</p>
       <p class="small">Posted on ${formatDate(review.createdAt)}</p>
     </article>
   `).join("");
 }
-
-document.addEventListener("DOMContentLoaded", loadDishDetails);
