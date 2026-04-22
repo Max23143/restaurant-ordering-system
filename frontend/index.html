@@ -8,23 +8,68 @@
 </head>
 <body>
   <div id="navbar"></div>
-  
+
   <section class="hero">
     <div class="container hero-grid">
       <div class="hero-card">
         <h1>Smart Restaurant Ordering and Management System</h1>
         <p>
-          Browse the menu, place orders, reserve tables, leave reviews, and receive AI-inspired
-          recommendations based on dish similarity and customer preference.
+          Browse the menu, place orders, reserve tables, leave reviews, and receive personalized dish recommendations.
         </p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="menu.html">Explore Menu</a>
           <a class="btn btn-secondary" href="booking.html">Book a Table</a>
         </div>
       </div>
+
       <article class="card">
-        <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80" alt="Restaurant dining" style="height: 100%; min-height: 340px; object-fit: cover;">
+        <img
+          src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80"
+          alt="Restaurant dining"
+          style="height: 100%; min-height: 340px; object-fit: cover;"
+        >
       </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="form-card">
+        <h2 class="section-title">Find Food by Preference</h2>
+        <p class="page-subtitle">
+          Try words like spicy, sweet, grilled, cheesy, chicken, vegetarian.
+        </p>
+
+        <div class="toolbar">
+          <input
+            id="recommendationSearchInput"
+            type="text"
+            placeholder="Example: spicy food"
+          >
+          <button
+            id="recommendationSearchBtn"
+            class="btn btn-primary"
+            type="button"
+          >
+            Find Recommendations
+          </button>
+        </div>
+
+        <div class="inline-actions" style="margin-top: 1rem; flex-wrap: wrap;">
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="spicy">Spicy</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="sweet">Sweet</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="grilled">Grilled</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="cheesy">Cheesy</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="chicken">Chicken</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="vegetarian">Vegetarian</button>
+        </div>
+
+        <div
+          id="searchRecommendationResults"
+          class="grid grid-4"
+          style="margin-top: 1rem;"
+        ></div>
+      </div>
     </div>
   </section>
 
@@ -32,7 +77,7 @@
     <div class="container">
       <div class="page-header">
         <h2 class="section-title">Featured Dishes</h2>
-        <p class="page-subtitle">Top-rated dishes from the live menu</p>
+        <p class="page-subtitle">Popular dishes from the live menu</p>
       </div>
       <div id="featuredItems" class="grid grid-4"></div>
     </div>
@@ -42,9 +87,9 @@
     <div class="container">
       <div class="page-header">
         <h2 class="section-title">Recommended For You</h2>
-        <p class="page-subtitle">Rule-based personalized suggestions for your project demo</p>
+        <p class="page-subtitle">Recommendations powered by your backend recommendation engine</p>
       </div>
-      <div id="recommendedItems" class="grid grid-4"></div>
+      <div id="recommendedItems"></div>
     </div>
   </section>
 

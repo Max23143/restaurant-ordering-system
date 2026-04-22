@@ -1,75 +1,99 @@
-function tokenize(text = "") {
-  return String(text)
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean);
+async function fetchTopRatedRecommendations() {
+  const response = await apiRequest("/recommendations/top-rated");
+  return (response.data || []).map(normalizeRecommendationItem);
 }
 
-function priceBand(price = 0) {
-  const amount = Number(price);
-  if (amount < 8) return "budget";
-  if (amount < 16) return "mid";
-  return "premium";
+async function fetchMenuBasedRecommendations(menuItemId) {
+  const response = await apiRequest(`/recommendations/menu/${menuItemId}`);
+  return (response.data || []).map(normalizeRecommendationItem);
 }
 
-function scoreRecommendation(baseItem, candidate) {
-  let score = 0;
-
-  if (!baseItem || !candidate || baseItem._id === candidate._id) return -1;
-
-  if (baseItem.category === candidate.category) score += 5;
-  if (priceBand(baseItem.price) === priceBand(candidate.price)) score += 3;
-
-  const baseWords = new Set([
-    ...tokenize(baseItem.description),
-    ...tokenize((baseItem.tags || []).join(" "))
-  ]);
-
-  const candidateWords = new Set([
-    ...tokenize(candidate.description),
-    ...tokenize((candidate.tags || []).join(" "))
-  ]);
-
-  let overlap = 0;
-  baseWords.forEach((word) => {
-    if (candidateWords.has(word)) overlap += 1;
-  });
-
-  score += Math.min(overlap, 4);
-  score += Number(candidate.rating || 0);
-
-  if (candidate.isAvailable) score += 1;
-
-  return score;
+async function fetchPersonalizedRecommendations() {
+  const response = await apiRequest("/recommendations/personalized");
+  return {
+    personalized: response.personalized === true,
+    message: response.message || "",
+    items: (response.data || []).map(normalizeRecommendationItem)
+  };
 }
 
-function getRecommendations(baseItem, allItems = [], limit = 4) {
-  return [...allItems]
-    .map((candidate) => ({
-      ...candidate,
-      recommendationScore: scoreRecommendation(baseItem, candidate)
-    }))
-    .filter((item) => item.recommendationScore >= 0)
-    .sort((a, b) => b.recommendationScore - a.recommendationScore)
-    .slice(0, limit);
+function normalizeRecommendationItem(item = {}) {
+  return {
+    _id: item._id || item.id || "",
+    name: item.name || "Unnamed item",
+    description: item.description || "No description available.",
+    category: item.category || "General",
+    image:
+      item.image ||
+      item.imageUrl ||
+      "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80",
+    price: Number(item.price || 0),
+    rating: Number(item.ratingAverage || item.rating || 0),
+    reviewsCount: Number(item.ratingCount || item.reviewsCount || 0),
+    isAvailable: item.isAvailable !== false,
+    tags: Array.isArray(item.tags) ? item.tags : [],
+    recommendationScore: Number(item.recommendationScore || 0)
+  };
 }
 
-function getPersonalizedHomeRecommendations(allItems = [], preferredCategory = "") {
-  const normalizedItems = allItems.map(normalizeMenuItem);
-
-  if (!normalizedItems.length) return [];
-
-  if (preferredCategory) {
-    const matches = normalizedItems
-      .filter((item) => item.category.toLowerCase() === preferredCategory.toLowerCase())
-      .sort((a, b) => b.rating - a.rating)
-      .slice(0, 4);
-
-    if (matches.length) return matches;
+function renderRecommendationCards(items = [], emptyMessage = "No recommendations available.") {
+  if (!items.length) {
+    return `<div class="empty-state">${emptyMessage}</div>`;
   }
 
-  return normalizedItems
-    .sort((a, b) => (b.rating * 2 + (b.reviewsCount || 0)) - (a.rating * 2 + (a.reviewsCount || 0)))
-    .slice(0, 4);
+  return items.map((item) => `
+    <article class="card">
+      <img
+        src="${item.image}"
+        alt="${item.name}"
+        style="height: 220px; width: 100%; object-fit: cover;"
+      >
+      <div class="card-body">
+        <div class="meta-row">
+          <span class="badge">${item.category}</span>
+          <span class="badge ${item.isAvailable ? "badge-success" : "badge-muted"}">
+            ${item.isAvailable ? "Available" : "Unavailable"}
+          </span>
+        </div>
+
+        <h3 class="card-title">${item.name}</h3>
+        <p class="card-text">${item.description}</p>
+
+        <div class="rating-row">
+          <span class="stars">${renderStars(item.rating)}</span>
+          <span class="small">${Number(item.rating || 0).toFixed(1)} (${item.reviewsCount} reviews)</span>
+        </div>
+
+        <div class="price-row">
+          <strong>${formatCurrency(item.price)}</strong>
+          <div class="inline-actions">
+            <a class="btn btn-secondary" href="${buildFrontendUrl(`dish-details.html?id=${item._id}`)}">View</a>
+            <button class="btn btn-primary" onclick="addRecommendedItemToCart('${item._id}')">Add</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  `).join("");
+}
+
+function addRecommendedItemToCart(id) {
+  const recommendationSource = window.__recommendationItems || [];
+  const item = recommendationSource.find((entry) => entry._id === id);
+
+  if (!item) {
+    alert("Unable to add this item right now.");
+    return;
+  }
+
+  if (!item.isAvailable) {
+    alert("This item is currently unavailable.");
+    return;
+  }
+
+  addToCart(item, 1);
+  alert(`${item.name} added to cart.`);
+}
+async function fetchPreferenceRecommendations(query) {
+  const response = await apiRequest(`/recommendations/search?query=${encodeURIComponent(query)}`);
+  return (response.data || []).map(normalizeRecommendationItem);
 }

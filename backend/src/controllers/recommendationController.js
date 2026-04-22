@@ -4,8 +4,8 @@ import ApiError from "../utils/ApiError.js";
 import catchAsync from "../utils/catchAsync.js";
 
 const calculateTagOverlap = (sourceTags = [], targetTags = []) => {
-  const sourceSet = new Set(sourceTags.map(tag => tag.toLowerCase()));
-  const targetSet = new Set(targetTags.map(tag => tag.toLowerCase()));
+  const sourceSet = new Set(sourceTags.map((tag) => String(tag).toLowerCase()));
+  const targetSet = new Set(targetTags.map((tag) => String(tag).toLowerCase()));
 
   let overlap = 0;
 
@@ -30,15 +30,19 @@ export const getRecommendationsByMenuItem = catchAsync(async (req, res) => {
     isAvailable: true
   });
 
-  const scoredItems = candidates.map(item => {
+  const scoredItems = candidates.map((item) => {
     let score = 0;
 
-    if (item.category.toLowerCase() === currentItem.category.toLowerCase()) {
+    if (
+      item.category &&
+      currentItem.category &&
+      item.category.toLowerCase() === currentItem.category.toLowerCase()
+    ) {
       score += 5;
     }
 
-    score += calculateTagOverlap(currentItem.tags, item.tags) * 2;
-    score += item.ratingAverage || 0;
+    score += calculateTagOverlap(currentItem.tags || [], item.tags || []) * 2;
+    score += Number(item.ratingAverage || 0);
 
     return {
       ...item.toObject(),
@@ -102,25 +106,29 @@ export const getPersonalizedRecommendations = catchAsync(async (req, res) => {
   const tagFrequency = {};
 
   for (const order of orders) {
-    for (const item of order.items) {
+    for (const item of order.items || []) {
       if (!item.menuItem) continue;
 
       const menuItem = item.menuItem;
 
       const category = menuItem.category?.toLowerCase();
       if (category) {
-        categoryFrequency[category] = (categoryFrequency[category] || 0) + item.quantity;
+        categoryFrequency[category] =
+          (categoryFrequency[category] || 0) + Number(item.quantity || 0);
       }
 
       for (const tag of menuItem.tags || []) {
-        const normalizedTag = tag.toLowerCase();
-        tagFrequency[normalizedTag] = (tagFrequency[normalizedTag] || 0) + item.quantity;
+        const normalizedTag = String(tag).toLowerCase();
+        tagFrequency[normalizedTag] =
+          (tagFrequency[normalizedTag] || 0) + Number(item.quantity || 0);
       }
     }
   }
 
-  const orderedMenuItemIds = orders.flatMap(order =>
-    order.items.map(item => item.menuItem?._id?.toString()).filter(Boolean)
+  const orderedMenuItemIds = orders.flatMap((order) =>
+    (order.items || [])
+      .map((item) => item.menuItem?._id?.toString())
+      .filter(Boolean)
   );
 
   const uniqueOrderedIds = [...new Set(orderedMenuItemIds)];
@@ -130,17 +138,17 @@ export const getPersonalizedRecommendations = catchAsync(async (req, res) => {
     isAvailable: true
   });
 
-  const scoredItems = candidates.map(item => {
+  const scoredItems = candidates.map((item) => {
     let score = 0;
 
-    const category = item.category.toLowerCase();
+    const category = String(item.category || "").toLowerCase();
     score += categoryFrequency[category] || 0;
 
     for (const tag of item.tags || []) {
-      score += tagFrequency[tag.toLowerCase()] || 0;
+      score += tagFrequency[String(tag).toLowerCase()] || 0;
     }
 
-    score += item.ratingAverage || 0;
+    score += Number(item.ratingAverage || 0);
 
     return {
       ...item.toObject(),
@@ -155,6 +163,56 @@ export const getPersonalizedRecommendations = catchAsync(async (req, res) => {
   res.status(200).json({
     success: true,
     personalized: true,
+    count: recommendations.length,
+    data: recommendations
+  });
+});
+
+export const searchRecommendationsByPreference = catchAsync(async (req, res) => {
+  const query = String(req.query.query || "").trim().toLowerCase();
+
+  if (!query) {
+    throw new ApiError("Search query is required.", 400);
+  }
+
+  const items = await MenuItem.find({ isAvailable: true });
+
+  const keywords = query
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter(Boolean);
+
+  const scoredItems = items.map((item) => {
+    let score = 0;
+
+    const name = String(item.name || "").toLowerCase();
+    const description = String(item.description || "").toLowerCase();
+    const category = String(item.category || "").toLowerCase();
+    const tags = (item.tags || []).map((tag) => String(tag).toLowerCase());
+
+    for (const keyword of keywords) {
+      if (tags.includes(keyword)) score += 5;
+      if (name.includes(keyword)) score += 4;
+      if (description.includes(keyword)) score += 3;
+      if (category.includes(keyword)) score += 2;
+    }
+
+    score += Number(item.ratingAverage || 0);
+
+    return {
+      ...item.toObject(),
+      recommendationScore: Number(score.toFixed(2))
+    };
+  });
+
+  const recommendations = scoredItems
+    .filter((item) => item.recommendationScore > 0)
+    .sort((a, b) => b.recommendationScore - a.recommendationScore)
+    .slice(0, 10);
+
+  res.status(200).json({
+    success: true,
+    query,
     count: recommendations.length,
     data: recommendations
   });

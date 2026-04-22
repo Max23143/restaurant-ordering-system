@@ -1,5 +1,5 @@
 let currentDish = null;
-let allDishItems = [];
+let currentRecommendations = [];
 
 document.addEventListener("DOMContentLoaded", loadDishDetails);
 
@@ -16,17 +16,17 @@ async function loadDishDetails() {
   }
 
   try {
-    const [itemResponse, menuResponse, reviewResponse] = await Promise.all([
+    const [itemResponse, recommendationResponse, reviewResponse] = await Promise.all([
       apiRequest(`/menu/${id}`),
-      apiRequest("/menu"),
+      fetchMenuBasedRecommendations(id),
       apiRequest(`/reviews/menu/${id}`)
     ]);
 
     currentDish = normalizeMenuItem(itemResponse.data || {});
-    allDishItems = (menuResponse.data || []).map(normalizeMenuItem);
+    currentRecommendations = recommendationResponse;
 
     renderDishDetails(currentDish);
-    renderRecommendedItems(getRecommendedItems(currentDish, allDishItems));
+    renderRecommendedItems(currentRecommendations);
     renderDishReviews(reviewResponse.data || []);
   } catch (error) {
     detailsMount.innerHTML = `<div class="empty-state">Failed to load dish details. ${error.message}</div>`;
@@ -93,60 +93,12 @@ function renderDishDetails(item) {
   }
 }
 
-function getRecommendedItems(baseItem, items) {
-  return items
-    .filter((item) => item._id !== baseItem._id)
-    .sort((a, b) => getRecommendationScore(baseItem, b) - getRecommendationScore(baseItem, a))
-    .slice(0, 4);
-}
-
-function getRecommendationScore(baseItem, candidate) {
-  let score = 0;
-
-  if (baseItem.category === candidate.category) score += 5;
-  if (candidate.isAvailable) score += 2;
-  score += Number(candidate.rating || 0);
-
-  const baseWords = `${baseItem.name} ${baseItem.description} ${(baseItem.tags || []).join(" ")}`.toLowerCase();
-  const candidateWords = `${candidate.name} ${candidate.description} ${(candidate.tags || []).join(" ")}`.toLowerCase();
-
-  const keywords = ["spicy", "cheese", "grill", "fried", "sweet", "chicken", "beef", "veggie", "dessert", "drink"];
-  keywords.forEach((keyword) => {
-    if (baseWords.includes(keyword) && candidateWords.includes(keyword)) {
-      score += 1;
-    }
-  });
-
-  return score;
-}
-
 function renderRecommendedItems(items) {
   const mount = document.getElementById("recommendationList");
   if (!mount) return;
 
-  if (!items.length) {
-    mount.innerHTML = `<div class="empty-state">No recommendations available for this dish.</div>`;
-    return;
-  }
-
-  mount.innerHTML = items.map((item) => `
-    <article class="card">
-      <img
-        src="${item.image}"
-        alt="${item.name}"
-        style="height: 200px; width: 100%; object-fit: cover;"
-      >
-      <div class="card-body">
-        <span class="badge">${item.category}</span>
-        <h3 class="card-title">${item.name}</h3>
-        <p class="card-text">${item.description}</p>
-        <div class="price-row">
-          <strong>${formatCurrency(item.price)}</strong>
-          <a class="btn btn-secondary" href="${buildFrontendUrl(`dish-details.html?id=${item._id}`)}">View</a>
-        </div>
-      </div>
-    </article>
-  `).join("");
+  window.__recommendationItems = items;
+  mount.innerHTML = renderRecommendationCards(items, "No recommendations available for this dish.");
 }
 
 function renderDishReviews(reviews) {
