@@ -30,6 +30,25 @@ const orderItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const paymentDetailsSchema = new mongoose.Schema(
+  {
+    cardHolderName: {
+      type: String,
+      default: ""
+    },
+    cardLast4: {
+      type: String,
+      default: ""
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed"],
+      default: "pending"
+    }
+  },
+  { _id: false }
+);
+
 const orderSchema = new mongoose.Schema(
   {
     user: {
@@ -60,6 +79,10 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: ["cash", "card", "online"],
       default: "cash"
+    },
+    paymentDetails: {
+      type: paymentDetailsSchema,
+      default: () => ({})
     },
     deliveryAddress: {
       type: String,

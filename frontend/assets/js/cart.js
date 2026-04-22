@@ -59,6 +59,7 @@ function renderCartPage() {
           <select id="orderType" required>
             <option value="delivery">Delivery</option>
             <option value="pickup">Pickup</option>
+            <option value="dine-in">Dine-in</option>
           </select>
         </div>
 
@@ -67,6 +68,7 @@ function renderCartPage() {
           <select id="paymentMethod" required>
             <option value="cash">Cash</option>
             <option value="card">Card</option>
+            <option value="online">Online</option>
           </select>
         </div>
 
@@ -75,26 +77,69 @@ function renderCartPage() {
           <textarea id="deliveryAddress" placeholder="Required for delivery orders"></textarea>
         </div>
 
+        <div id="cardPaymentSection" class="form-group full hide">
+          <div class="form-card" style="padding: 1rem; background: #fffaf5;">
+            <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 1rem;">Card Details</h3>
+
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="cardHolderName">Card Holder Name</label>
+                <input id="cardHolderName" type="text" placeholder="Name on card">
+              </div>
+
+              <div class="form-group full">
+                <label for="cardNumber">Card Number</label>
+                <input id="cardNumber" type="text" maxlength="19" placeholder="1234 5678 9012 3456">
+              </div>
+
+              <div class="form-group">
+                <label for="expiryMonth">Expiry Month</label>
+                <input id="expiryMonth" type="text" maxlength="2" placeholder="MM">
+              </div>
+
+              <div class="form-group">
+                <label for="expiryYear">Expiry Year</label>
+                <input id="expiryYear" type="text" maxlength="4" placeholder="YY or YYYY">
+              </div>
+
+              <div class="form-group">
+                <label for="cvv">CVV</label>
+                <input id="cvv" type="password" maxlength="4" placeholder="123">
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="form-group full">
           <label for="specialInstructions">Special Instructions</label>
           <textarea id="specialInstructions" placeholder="Optional instructions"></textarea>
         </div>
 
         <div class="form-group full">
-          <button class="btn btn-primary" id="placeOrderBtn" type="submit">Place Order</button>
+          <button class="btn btn-primary" id="placeOrderBtn" type="submit">Confirm Order</button>
         </div>
       </form>
     </div>
   `;
 
   const orderTypeSelect = document.getElementById("orderType");
-  const deliveryAddressInput = document.getElementById("deliveryAddress");
+  const paymentMethodSelect = document.getElementById("paymentMethod");
 
   toggleDeliveryAddress(orderTypeSelect.value);
+  toggleCardSection(paymentMethodSelect.value);
 
   orderTypeSelect.addEventListener("change", () => {
     toggleDeliveryAddress(orderTypeSelect.value);
   });
+
+  paymentMethodSelect.addEventListener("change", () => {
+    toggleCardSection(paymentMethodSelect.value);
+  });
+
+  const cardNumberInput = document.getElementById("cardNumber");
+  if (cardNumberInput) {
+    cardNumberInput.addEventListener("input", formatCardNumberInput);
+  }
 
   document.getElementById("checkoutForm").addEventListener("submit", submitOrder);
 }
@@ -109,8 +154,33 @@ function toggleDeliveryAddress(orderType) {
   } else {
     deliveryAddressInput.disabled = true;
     deliveryAddressInput.value = "";
-    deliveryAddressInput.placeholder = "Not required for pickup";
+    deliveryAddressInput.placeholder = "Not required for this order type";
   }
+}
+
+function toggleCardSection(paymentMethod) {
+  const cardSection = document.getElementById("cardPaymentSection");
+  if (!cardSection) return;
+
+  if (paymentMethod === "card") {
+    cardSection.classList.remove("hide");
+  } else {
+    cardSection.classList.add("hide");
+    clearCardFields();
+  }
+}
+
+function clearCardFields() {
+  const ids = ["cardHolderName", "cardNumber", "expiryMonth", "expiryYear", "cvv"];
+  ids.forEach((id) => {
+    const input = document.getElementById(id);
+    if (input) input.value = "";
+  });
+}
+
+function formatCardNumberInput(event) {
+  const digitsOnly = event.target.value.replace(/\D/g, "").slice(0, 16);
+  event.target.value = digitsOnly.replace(/(.{4})/g, "$1 ").trim();
 }
 
 function handleQuantityChange(id, value) {
@@ -149,6 +219,49 @@ async function submitOrder(event) {
     return;
   }
 
+  let paymentDetails = {};
+
+  if (paymentMethod === "card") {
+    const cardHolderName = document.getElementById("cardHolderName").value.trim();
+    const cardNumber = document.getElementById("cardNumber").value.replace(/\s+/g, "");
+    const expiryMonth = document.getElementById("expiryMonth").value.trim();
+    const expiryYear = document.getElementById("expiryYear").value.trim();
+    const cvv = document.getElementById("cvv").value.trim();
+
+    if (!cardHolderName || !cardNumber || !expiryMonth || !expiryYear || !cvv) {
+      showMessage("cartMessage", "Please complete all card details.", "error");
+      return;
+    }
+
+    if (!/^\d{16}$/.test(cardNumber)) {
+      showMessage("cartMessage", "Card number must be 16 digits.", "error");
+      return;
+    }
+
+    if (!/^\d{2}$/.test(expiryMonth) || Number(expiryMonth) < 1 || Number(expiryMonth) > 12) {
+      showMessage("cartMessage", "Expiry month must be between 01 and 12.", "error");
+      return;
+    }
+
+    if (!/^\d{2,4}$/.test(expiryYear)) {
+      showMessage("cartMessage", "Expiry year is invalid.", "error");
+      return;
+    }
+
+    if (!/^\d{3,4}$/.test(cvv)) {
+      showMessage("cartMessage", "CVV must be 3 or 4 digits.", "error");
+      return;
+    }
+
+    paymentDetails = {
+      cardHolderName,
+      cardNumber,
+      expiryMonth,
+      expiryYear,
+      cvv
+    };
+  }
+
   const payload = {
     items: cartItems.map((item) => ({
       menuItem: item._id,
@@ -157,11 +270,12 @@ async function submitOrder(event) {
     orderType,
     paymentMethod,
     deliveryAddress,
-    specialInstructions
+    specialInstructions,
+    paymentDetails
   };
 
   placeOrderBtn.disabled = true;
-  placeOrderBtn.textContent = "Placing Order...";
+  placeOrderBtn.textContent = "Confirming Order...";
 
   try {
     await apiRequest("/orders", {
@@ -179,6 +293,6 @@ async function submitOrder(event) {
     showMessage("cartMessage", error.message, "error");
   } finally {
     placeOrderBtn.disabled = false;
-    placeOrderBtn.textContent = "Place Order";
+    placeOrderBtn.textContent = "Confirm Order";
   }
 }

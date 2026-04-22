@@ -30,6 +30,8 @@ async function loadOrderHistory() {
               <th>Total</th>
               <th>Status</th>
               <th>Payment</th>
+              <th>Payment Status</th>
+              <th>Card</th>
             </tr>
           </thead>
           <tbody>
@@ -48,6 +50,12 @@ async function loadOrderHistory() {
                 <td>${formatCurrency(order.totalAmount || 0)}</td>
                 <td>${capitalizeText(order.status || "pending")}</td>
                 <td>${capitalizeText(order.paymentMethod || "cash")}</td>
+                <td>${capitalizeText(order.paymentDetails?.paymentStatus || "pending")}</td>
+                <td>
+                  ${order.paymentMethod === "card"
+                    ? `${order.paymentDetails?.cardHolderName || "Card"} (${order.paymentDetails?.cardLast4 || "****"})`
+                    : "-"}
+                </td>
               </tr>
             `).join("")}
           </tbody>

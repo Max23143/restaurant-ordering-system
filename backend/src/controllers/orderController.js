@@ -9,7 +9,8 @@ export const createOrder = catchAsync(async (req, res) => {
     orderType,
     paymentMethod,
     deliveryAddress,
-    specialInstructions
+    specialInstructions,
+    paymentDetails
   } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
@@ -54,15 +55,75 @@ export const createOrder = catchAsync(async (req, res) => {
     totalAmount += lineTotal;
   }
 
-  if (orderType === "delivery" && !deliveryAddress) {
+  const finalOrderType = orderType || "delivery";
+  const finalPaymentMethod = paymentMethod || "cash";
+
+  if (finalOrderType === "delivery" && !deliveryAddress) {
     throw new ApiError("Delivery address is required for delivery orders.", 400);
+  }
+
+  let safePaymentDetails = {
+    cardHolderName: "",
+    cardLast4: "",
+    paymentStatus: "pending"
+  };
+
+  if (finalPaymentMethod === "card") {
+    const cardHolderName = String(paymentDetails?.cardHolderName || "").trim();
+    const cardNumber = String(paymentDetails?.cardNumber || "").replace(/\s+/g, "");
+    const expiryMonth = String(paymentDetails?.expiryMonth || "").trim();
+    const expiryYear = String(paymentDetails?.expiryYear || "").trim();
+    const cvv = String(paymentDetails?.cvv || "").trim();
+
+    if (!cardHolderName || !cardNumber || !expiryMonth || !expiryYear || !cvv) {
+      throw new ApiError("Complete card details are required for card payments.", 400);
+    }
+
+    if (!/^\d{16}$/.test(cardNumber)) {
+      throw new ApiError("Card number must be 16 digits.", 400);
+    }
+
+    if (!/^\d{2}$/.test(expiryMonth) || Number(expiryMonth) < 1 || Number(expiryMonth) > 12) {
+      throw new ApiError("Expiry month must be between 01 and 12.", 400);
+    }
+
+    if (!/^\d{2,4}$/.test(expiryYear)) {
+      throw new ApiError("Expiry year is invalid.", 400);
+    }
+
+    if (!/^\d{3,4}$/.test(cvv)) {
+      throw new ApiError("CVV must be 3 or 4 digits.", 400);
+    }
+
+    safePaymentDetails = {
+      cardHolderName,
+      cardLast4: cardNumber.slice(-4),
+      paymentStatus: "paid"
+    };
+  }
+
+  if (finalPaymentMethod === "cash") {
+    safePaymentDetails = {
+      cardHolderName: "",
+      cardLast4: "",
+      paymentStatus: "pending"
+    };
+  }
+
+  if (finalPaymentMethod === "online") {
+    safePaymentDetails = {
+      cardHolderName: "",
+      cardLast4: "",
+      paymentStatus: "paid"
+    };
   }
 
   const order = await Order.create({
     user: req.user._id,
     items: preparedItems,
-    orderType: orderType || "delivery",
-    paymentMethod: paymentMethod || "cash",
+    orderType: finalOrderType,
+    paymentMethod: finalPaymentMethod,
+    paymentDetails: safePaymentDetails,
     deliveryAddress: deliveryAddress || "",
     specialInstructions: specialInstructions || "",
     totalAmount
