@@ -19,8 +19,8 @@ async function loginUser(event) {
   const passwordInput = document.getElementById("loginPassword");
   const loginBtn = document.getElementById("loginBtn");
 
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
+  const email = emailInput?.value.trim() || "";
+  const password = passwordInput?.value || "";
 
   if (!email || !password) {
     showMessage("authMessage", "Email and password are required.", "error");
@@ -53,8 +53,9 @@ async function loginUser(event) {
         role === "admin"
           ? buildFrontendUrl("admin/dashboard.html")
           : buildFrontendUrl("index.html");
-    }, 400);
+    }, 500);
   } catch (error) {
+    console.error("Login failed:", error);
     showMessage("authMessage", error.message || "Login failed.", "error");
   } finally {
     loginBtn.disabled = false;
@@ -66,10 +67,10 @@ async function registerUserWithOtp(event) {
   event.preventDefault();
   hideMessage("authMessage");
 
-  const fullName = document.getElementById("registerName").value.trim();
-  const email = document.getElementById("registerEmail").value.trim();
-  const phone = document.getElementById("registerPhone").value.trim();
-  const password = document.getElementById("registerPassword").value;
+  const fullName = document.getElementById("registerName")?.value.trim() || "";
+  const email = document.getElementById("registerEmail")?.value.trim() || "";
+  const phone = document.getElementById("registerPhone")?.value.trim() || "";
+  const password = document.getElementById("registerPassword")?.value || "";
   const registerBtn = document.getElementById("registerBtn");
 
   if (!fullName || !email || !phone || !password) {
@@ -100,23 +101,25 @@ async function registerUserWithOtp(event) {
       method: "POST",
       body: JSON.stringify({
         phone,
-        otp: enteredOtp
+        otp: enteredOtp.trim()
       })
     });
 
     const token = verifyResponse.token || verifyResponse.data?.token;
     const user = verifyResponse.user || verifyResponse.data?.user;
 
-    if (token && user) {
-      setSession({ token, user });
+    if (!token || !user) {
+      throw new Error("Registration verification response is incomplete.");
     }
 
+    setSession({ token, user });
     showMessage("authMessage", "Registration completed successfully.", "success");
 
     setTimeout(() => {
       window.location.href = buildFrontendUrl("index.html");
     }, 500);
   } catch (error) {
+    console.error("Registration failed:", error);
     showMessage("authMessage", error.message || "Registration failed.", "error");
   } finally {
     registerBtn.disabled = false;
