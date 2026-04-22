@@ -179,31 +179,94 @@ export const searchRecommendationsByPreference = catchAsync(async (req, res) => 
 
   const keywords = query
     .split(/\s+/)
-    .map((word) => word.trim())
+    .map((word) => word.trim().toLowerCase())
     .filter(Boolean);
 
-  const scoredItems = items.map((item) => {
-    let score = 0;
+  const hasVegetarianIntent =
+    keywords.includes("vegetarian") || keywords.includes("veg");
 
-    const name = String(item.name || "").toLowerCase();
-    const description = String(item.description || "").toLowerCase();
-    const category = String(item.category || "").toLowerCase();
-    const tags = (item.tags || []).map((tag) => String(tag).toLowerCase());
+  const hasVeganIntent =
+    keywords.includes("vegan");
 
-    for (const keyword of keywords) {
-      if (tags.includes(keyword)) score += 5;
-      if (name.includes(keyword)) score += 4;
-      if (description.includes(keyword)) score += 3;
-      if (category.includes(keyword)) score += 2;
-    }
+  const nonVegWords = [
+    "chicken",
+    "beef",
+    "mutton",
+    "lamb",
+    "pork",
+    "fish",
+    "seafood",
+    "prawn",
+    "shrimp",
+    "meat",
+    "egg",
+    "turkey",
+    "bacon",
+    "ham"
+  ];
 
-    score += Number(item.ratingAverage || 0);
+  const scoredItems = items
+    .map((item) => {
+      let score = 0;
 
-    return {
-      ...item.toObject(),
-      recommendationScore: Number(score.toFixed(2))
-    };
-  });
+      const name = String(item.name || "").toLowerCase();
+      const description = String(item.description || "").toLowerCase();
+      const category = String(item.category || "").toLowerCase();
+      const tags = (item.tags || []).map((tag) => String(tag).toLowerCase());
+
+      const combinedText = `${name} ${description} ${category} ${tags.join(" ")}`;
+
+      const containsNonVegWord = nonVegWords.some((word) =>
+        combinedText.includes(word)
+      );
+
+      const isVegetarianTagged =
+        tags.includes("vegetarian") ||
+        tags.includes("veg") ||
+        category.includes("vegetarian") ||
+        category.includes("veg");
+
+      const isVeganTagged =
+        tags.includes("vegan") ||
+        category.includes("vegan");
+
+      if (hasVegetarianIntent) {
+        if (containsNonVegWord) {
+          return null;
+        }
+
+        if (isVegetarianTagged) {
+          score += 8;
+        }
+      }
+
+      if (hasVeganIntent) {
+        if (containsNonVegWord) {
+          return null;
+        }
+
+        if (!isVeganTagged) {
+          return null;
+        }
+
+        score += 10;
+      }
+
+      for (const keyword of keywords) {
+        if (tags.includes(keyword)) score += 5;
+        if (name.includes(keyword)) score += 4;
+        if (description.includes(keyword)) score += 3;
+        if (category.includes(keyword)) score += 2;
+      }
+
+      score += Number(item.ratingAverage || 0);
+
+      return {
+        ...item.toObject(),
+        recommendationScore: Number(score.toFixed(2))
+      };
+    })
+    .filter(Boolean);
 
   const recommendations = scoredItems
     .filter((item) => item.recommendationScore > 0)
