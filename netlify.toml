@@ -1,0 +1,8 @@
+[build]
+  publish = "frontend"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://restaurant-ordering-backend-vmw0.onrender.com/api/:splat"
+  status = 200
+  force = true
