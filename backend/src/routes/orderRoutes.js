@@ -1,6 +1,8 @@
 import express from "express";
 import {
   createOrder,
+  requestCardPaymentOtp,
+  confirmCardPaymentOtp,
   getMyOrders,
   getMyOrderById,
   getAllOrders,
@@ -11,16 +13,14 @@ import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-/*
-  Customer routes
-*/
+/* Customer routes */
 router.post("/", protect, createOrder);
+router.post("/card/request-otp", protect, requestCardPaymentOtp);
+router.post("/card/confirm-otp", protect, confirmCardPaymentOtp);
 router.get("/my-orders", protect, getMyOrders);
 router.get("/my-orders/:id", protect, getMyOrderById);
 
-/*
-  Admin routes
-*/
+/* Admin routes */
 router.get("/admin/all", protect, adminOnly, getAllOrders);
 router.get("/admin/:id", protect, adminOnly, getOrderByIdAdmin);
 router.put("/admin/:id/status", protect, adminOnly, updateOrderStatus);

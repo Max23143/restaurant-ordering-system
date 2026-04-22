@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (registerForm) {
-    registerForm.addEventListener("submit", registerUser);
+    registerForm.addEventListener("submit", registerUserWithOtp);
   }
 });
 
@@ -55,7 +55,6 @@ async function loginUser(event) {
           : buildFrontendUrl("index.html");
     }, 400);
   } catch (error) {
-    console.error("Login failed:", error);
     showMessage("authMessage", error.message || "Login failed.", "error");
   } finally {
     loginBtn.disabled = false;
@@ -63,54 +62,64 @@ async function loginUser(event) {
   }
 }
 
-async function registerUser(event) {
+async function registerUserWithOtp(event) {
   event.preventDefault();
   hideMessage("authMessage");
 
-  const nameInput = document.getElementById("registerName");
-  const emailInput = document.getElementById("registerEmail");
-  const passwordInput = document.getElementById("registerPassword");
+  const fullName = document.getElementById("registerName").value.trim();
+  const email = document.getElementById("registerEmail").value.trim();
+  const phone = document.getElementById("registerPhone").value.trim();
+  const password = document.getElementById("registerPassword").value;
   const registerBtn = document.getElementById("registerBtn");
 
-  const fullName = nameInput.value.trim();
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
-
-  if (!fullName || !email || !password) {
-    showMessage("authMessage", "Full name, email, and password are required.", "error");
+  if (!fullName || !email || !phone || !password) {
+    showMessage("authMessage", "Full name, email, phone, and password are required.", "error");
     return;
   }
 
-  if (registerBtn) {
-    registerBtn.disabled = true;
-    registerBtn.textContent = "Registering...";
-  }
+  registerBtn.disabled = true;
+  registerBtn.textContent = "Sending OTP...";
 
   try {
-    const response = await apiRequest("/auth/register", {
+    await apiRequest("/auth/register/request-otp", {
       method: "POST",
-      body: JSON.stringify({ fullName, email, password })
+      body: JSON.stringify({
+        fullName,
+        email,
+        phone,
+        password
+      })
     });
 
-    const token = response.token || response.data?.token;
-    const user = response.user || response.data?.user;
+    const enteredOtp = prompt("An OTP has been sent to your phone. Enter it here:");
+    if (!enteredOtp) {
+      throw new Error("OTP entry cancelled.");
+    }
+
+    const verifyResponse = await apiRequest("/auth/register/verify-otp", {
+      method: "POST",
+      body: JSON.stringify({
+        phone,
+        otp: enteredOtp
+      })
+    });
+
+    const token = verifyResponse.token || verifyResponse.data?.token;
+    const user = verifyResponse.user || verifyResponse.data?.user;
 
     if (token && user) {
       setSession({ token, user });
     }
 
-    showMessage("authMessage", "Registration successful.", "success");
+    showMessage("authMessage", "Registration completed successfully.", "success");
 
     setTimeout(() => {
       window.location.href = buildFrontendUrl("index.html");
     }, 500);
   } catch (error) {
-    console.error("Registration failed:", error);
     showMessage("authMessage", error.message || "Registration failed.", "error");
   } finally {
-    if (registerBtn) {
-      registerBtn.disabled = false;
-      registerBtn.textContent = "Register";
-    }
+    registerBtn.disabled = false;
+    registerBtn.textContent = "Register";
   }
 }

@@ -58,6 +58,7 @@ function renderNavbar() {
   const authBlock = isLoggedIn
     ? `
       <span class="badge badge-muted">Hi, ${currentUser.fullName || currentUser.name || currentUser.email || "User"}</span>
+      <button class="btn btn-secondary" id="deleteAccountBtn">Delete Account</button>
       <button class="btn btn-secondary" id="logoutBtn">Logout</button>
     `
     : "";
@@ -80,6 +81,26 @@ function renderNavbar() {
     logoutBtn.addEventListener("click", () => {
       clearSession();
       window.location.href = buildFrontendUrl("login.html");
+    });
+  }
+
+  const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+  if (deleteAccountBtn) {
+    deleteAccountBtn.addEventListener("click", async () => {
+      const confirmed = confirm("Are you sure you want to permanently delete your account?");
+      if (!confirmed) return;
+
+      try {
+        await apiRequest("/auth/me", {
+          method: "DELETE"
+        });
+
+        clearSession();
+        alert("Your account has been deleted successfully.");
+        window.location.href = buildFrontendUrl("register.html");
+      } catch (error) {
+        alert(error.message || "Failed to delete account.");
+      }
     });
   }
 

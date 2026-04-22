@@ -1,18 +1,21 @@
 import Order from "../models/Order.js";
 import MenuItem from "../models/MenuItem.js";
+import OtpVerification from "../models/OtpVerification.js";
 import ApiError from "../utils/ApiError.js";
 import catchAsync from "../utils/catchAsync.js";
+import { sendSmsOtp, checkSmsOtp } from "../utils/sendSmsOtp.js";
 
-export const createOrder = catchAsync(async (req, res) => {
-  const {
-    items,
-    orderType,
-    paymentMethod,
-    deliveryAddress,
-    specialInstructions,
-    paymentDetails
-  } = req.body;
+const generateOtpCode = () => String(Math.floor(100000 + Math.random() * 900000));
 
+const buildPreparedOrder = async ({
+  userId,
+  items,
+  orderType,
+  paymentMethod,
+  deliveryAddress,
+  specialInstructions,
+  paymentDetails
+}) => {
   if (!items || !Array.isArray(items) || items.length === 0) {
     throw new ApiError("Order items are required.", 400);
   }
@@ -118,8 +121,8 @@ export const createOrder = catchAsync(async (req, res) => {
     };
   }
 
-  const order = await Order.create({
-    user: req.user._id,
+  return {
+    user: userId,
     items: preparedItems,
     orderType: finalOrderType,
     paymentMethod: finalPaymentMethod,
@@ -127,7 +130,102 @@ export const createOrder = catchAsync(async (req, res) => {
     deliveryAddress: deliveryAddress || "",
     specialInstructions: specialInstructions || "",
     totalAmount
+  };
+};
+
+export const requestCardPaymentOtp = catchAsync(async (req, res) => {
+  const orderPayload = await buildPreparedOrder({
+    userId: req.user._id,
+    ...req.body,
+    paymentMethod: "card"
   });
+
+  const otpCode = generateOtpCode();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+  const identifier = `${req.user._id.toString()}_card_payment`;
+
+  await OtpVerification.findOneAndDelete({
+    identifier,
+    purpose: "card_payment"
+  });
+
+  await OtpVerification.create({
+    identifier,
+    purpose: "card_payment",
+    otpCode,
+    expiresAt,
+    payload: orderPayload
+  });
+
+  await sendEmail({
+    to: req.user.email,
+    subject: "RestaurantHub Card Payment OTP",
+    text: `Your OTP for confirming card payment is ${otpCode}. It expires in 5 minutes.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>RestaurantHub Card Payment Verification</h2>
+        <p>Your OTP for confirming card payment is:</p>
+        <h1 style="letter-spacing: 4px; color: #c2410c;">${otpCode}</h1>
+        <p>This OTP expires in 5 minutes.</p>
+      </div>
+    `
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Payment OTP sent successfully to your registered email."
+  });
+});
+
+export const confirmCardPaymentOtp = catchAsync(async (req, res) => {
+  const { otp } = req.body;
+
+  if (!otp) {
+    throw new ApiError("OTP is required.", 400);
+  }
+
+  const identifier = `${req.user._id.toString()}_card_payment`;
+
+  const record = await OtpVerification.findOne({
+    identifier,
+    purpose: "card_payment"
+  });
+
+  if (!record) {
+    throw new ApiError("Payment OTP request not found or expired.", 404);
+  }
+
+  if (record.expiresAt.getTime() < Date.now()) {
+    await OtpVerification.deleteOne({ _id: record._id });
+    throw new ApiError("OTP has expired.", 400);
+  }
+
+  if (record.otpCode !== String(otp).trim()) {
+    throw new ApiError("Invalid OTP.", 400);
+  }
+
+  const order = await Order.create(record.payload);
+
+  await OtpVerification.deleteOne({ _id: record._id });
+
+  const populatedOrder = await Order.findById(order._id)
+    .populate("user", "fullName email")
+    .populate("items.menuItem", "name category price image");
+
+  res.status(201).json({
+    success: true,
+    message: "Card payment confirmed and order created successfully.",
+    data: populatedOrder
+  });
+});
+
+export const createOrder = catchAsync(async (req, res) => {
+  const orderData = await buildPreparedOrder({
+    userId: req.user._id,
+    ...req.body
+  });
+
+  const order = await Order.create(orderData);
 
   const populatedOrder = await Order.findById(order._id)
     .populate("user", "fullName email")

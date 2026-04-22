@@ -21,13 +21,11 @@ function renderCartPage() {
           alt="${item.name}"
           style="height: 100px; width: 120px; object-fit: cover; border-radius: 14px;"
         >
-
         <div>
           <h3 class="card-title">${item.name}</h3>
           <p class="card-text">${item.description}</p>
           <p><strong>${formatCurrency(item.price)}</strong></p>
         </div>
-
         <div>
           <label class="small" for="qty-${item._id}">Quantity</label>
           <input
@@ -233,26 +231,6 @@ async function submitOrder(event) {
       return;
     }
 
-    if (!/^\d{16}$/.test(cardNumber)) {
-      showMessage("cartMessage", "Card number must be 16 digits.", "error");
-      return;
-    }
-
-    if (!/^\d{2}$/.test(expiryMonth) || Number(expiryMonth) < 1 || Number(expiryMonth) > 12) {
-      showMessage("cartMessage", "Expiry month must be between 01 and 12.", "error");
-      return;
-    }
-
-    if (!/^\d{2,4}$/.test(expiryYear)) {
-      showMessage("cartMessage", "Expiry year is invalid.", "error");
-      return;
-    }
-
-    if (!/^\d{3,4}$/.test(cvv)) {
-      showMessage("cartMessage", "CVV must be 3 or 4 digits.", "error");
-      return;
-    }
-
     paymentDetails = {
       cardHolderName,
       cardNumber,
@@ -278,10 +256,29 @@ async function submitOrder(event) {
   placeOrderBtn.textContent = "Confirming Order...";
 
   try {
-    await apiRequest("/orders", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
+    if (paymentMethod === "card") {
+      const otpResponse = await apiRequest("/orders/card/request-otp", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
+      alert(`Demo OTP for card payment: ${otpResponse.demoOtp}`);
+
+      const enteredOtp = prompt("Enter the OTP to confirm your card payment:");
+      if (!enteredOtp) {
+        throw new Error("OTP entry cancelled.");
+      }
+
+      await apiRequest("/orders/card/confirm-otp", {
+        method: "POST",
+        body: JSON.stringify({ otp: enteredOtp })
+      });
+    } else {
+      await apiRequest("/orders", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+    }
 
     saveCart([]);
     showMessage("cartMessage", "Order placed successfully.", "success");
@@ -290,7 +287,7 @@ async function submitOrder(event) {
       window.location.href = buildFrontendUrl("order-history.html");
     }, 700);
   } catch (error) {
-    showMessage("cartMessage", error.message, "error");
+    showMessage("cartMessage", error.message || "Failed to place order.", "error");
   } finally {
     placeOrderBtn.disabled = false;
     placeOrderBtn.textContent = "Confirm Order";
