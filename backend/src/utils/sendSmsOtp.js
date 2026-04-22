@@ -11,12 +11,10 @@ export const sendSmsOtp = async (phone) => {
     throw new Error("Twilio Verify is not configured.");
   }
 
-  return client.verify.v2
-    .services(verifyServiceSid)
-    .verifications.create({
-      to: phone,
-      channel: "sms"
-    });
+  return client.verify.v2.services(verifyServiceSid).verifications.create({
+    to: phone,
+    channel: "sms"
+  });
 };
 
 export const checkSmsOtp = async (phone, code) => {
@@ -24,10 +22,8 @@ export const checkSmsOtp = async (phone, code) => {
     throw new Error("Twilio Verify is not configured.");
   }
 
-  return client.verify.v2
-    .services(verifyServiceSid)
-    .verificationChecks.create({
-      to: phone,
-      code
-    });
+  return client.verify.v2.services(verifyServiceSid).verificationChecks.create({
+    to: phone,
+    code
+  });
 };

@@ -134,6 +134,10 @@ const buildPreparedOrder = async ({
 };
 
 export const requestCardPaymentOtp = catchAsync(async (req, res) => {
+  if (!req.user.phone) {
+    throw new ApiError("Your account does not have a phone number for OTP verification.", 400);
+  }
+
   const orderPayload = await buildPreparedOrder({
     userId: req.user._id,
     ...req.body,
@@ -157,23 +161,11 @@ export const requestCardPaymentOtp = catchAsync(async (req, res) => {
     payload: orderPayload
   });
 
-  await sendEmail({
-    to: req.user.email,
-    subject: "RestaurantHub Card Payment OTP",
-    text: `Your OTP for confirming card payment is ${otpCode}. It expires in 5 minutes.`,
-    html: `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>RestaurantHub Card Payment Verification</h2>
-        <p>Your OTP for confirming card payment is:</p>
-        <h1 style="letter-spacing: 4px; color: #c2410c;">${otpCode}</h1>
-        <p>This OTP expires in 5 minutes.</p>
-      </div>
-    `
-  });
+  await sendSmsOtp(req.user.phone);
 
   res.status(200).json({
     success: true,
-    message: "Payment OTP sent successfully to your registered email."
+    message: "Payment OTP sent successfully to your registered phone."
   });
 });
 
@@ -182,6 +174,10 @@ export const confirmCardPaymentOtp = catchAsync(async (req, res) => {
 
   if (!otp) {
     throw new ApiError("OTP is required.", 400);
+  }
+
+  if (!req.user.phone) {
+    throw new ApiError("Your account does not have a phone number for OTP verification.", 400);
   }
 
   const identifier = `${req.user._id.toString()}_card_payment`;
@@ -200,7 +196,9 @@ export const confirmCardPaymentOtp = catchAsync(async (req, res) => {
     throw new ApiError("OTP has expired.", 400);
   }
 
-  if (record.otpCode !== String(otp).trim()) {
+  const verificationCheck = await checkSmsOtp(req.user.phone, String(otp).trim());
+
+  if (verificationCheck.status !== "approved") {
     throw new ApiError("Invalid OTP.", 400);
   }
 
