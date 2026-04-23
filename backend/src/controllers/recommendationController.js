@@ -18,6 +18,132 @@ const calculateTagOverlap = (sourceTags = [], targetTags = []) => {
   return overlap;
 };
 
+const synonymMap = {
+  veg: ["vegetarian", "veg"],
+  vegetarian: ["vegetarian", "veg"],
+  vegan: ["vegan"],
+  spicy: ["spicy", "hot", "chilli", "chili", "masala"],
+  hot: ["spicy", "hot", "chilli", "chili"],
+  sweet: ["sweet", "dessert", "sugary"],
+  dessert: ["dessert", "sweet", "cake", "ice cream", "chocolate"],
+  cheesy: ["cheesy", "cheese"],
+  cheese: ["cheesy", "cheese"],
+  grilled: ["grilled", "bbq", "barbecue", "barbeque"],
+  chicken: ["chicken"],
+  fish: ["fish", "seafood", "prawn", "shrimp"],
+  cheap: ["cheap", "budget", "low price", "affordable"],
+  affordable: ["cheap", "budget", "affordable"],
+  expensive: ["expensive", "premium", "luxury"],
+  lunch: ["lunch"],
+  dinner: ["dinner"],
+  breakfast: ["breakfast"],
+  burger: ["burger"],
+  curry: ["curry"],
+  pizza: ["pizza"],
+  pasta: ["pasta"]
+};
+
+const nonVegWords = [
+  "chicken",
+  "beef",
+  "mutton",
+  "lamb",
+  "pork",
+  "fish",
+  "seafood",
+  "prawn",
+  "shrimp",
+  "meat",
+  "egg",
+  "turkey",
+  "bacon",
+  "ham"
+];
+
+const sweetWords = [
+  "sweet",
+  "dessert",
+  "cake",
+  "ice cream",
+  "chocolate",
+  "caramel",
+  "vanilla",
+  "strawberry",
+  "honey",
+  "sugar"
+];
+
+const spicyWords = [
+  "spicy",
+  "hot",
+  "chilli",
+  "chili",
+  "pepper",
+  "masala"
+];
+
+const dinnerWords = [
+  "main course",
+  "curry",
+  "rice",
+  "pasta",
+  "noodles",
+  "burger",
+  "pizza",
+  "steak",
+  "meal"
+];
+
+const breakfastWords = [
+  "breakfast",
+  "toast",
+  "omelette",
+  "egg",
+  "coffee",
+  "tea",
+  "sandwich"
+];
+
+const lunchWords = [
+  "lunch",
+  "burger",
+  "wrap",
+  "sandwich",
+  "rice",
+  "pasta",
+  "meal"
+];
+
+const expandKeywords = (keywords = []) => {
+  const expanded = new Set();
+
+  for (const keyword of keywords) {
+    expanded.add(keyword);
+    const synonyms = synonymMap[keyword] || [];
+    synonyms.forEach((entry) => expanded.add(entry));
+  }
+
+  return [...expanded];
+};
+
+const normalizeItemForSearch = (item) => {
+  const name = String(item.name || "").toLowerCase();
+  const description = String(item.description || "").toLowerCase();
+  const category = String(item.category || "").toLowerCase();
+  const tags = (item.tags || []).map((tag) => String(tag).toLowerCase());
+  const combinedText = `${name} ${description} ${category} ${tags.join(" ")}`;
+
+  return { name, description, category, tags, combinedText };
+};
+
+const getPriceTier = (price) => {
+  const value = Number(price || 0);
+
+  if (value <= 8) return "cheap";
+  if (value <= 18) return "mid";
+  return "premium";
+};
+
 export const getRecommendationsByMenuItem = catchAsync(async (req, res) => {
   const currentItem = await MenuItem.findById(req.params.menuItemId);
 
@@ -38,11 +164,12 @@ export const getRecommendationsByMenuItem = catchAsync(async (req, res) => {
       currentItem.category &&
       item.category.toLowerCase() === currentItem.category.toLowerCase()
     ) {
-      score += 5;
+      score += 6;
     }
 
-    score += calculateTagOverlap(currentItem.tags || [], item.tags || []) * 2;
+    score += calculateTagOverlap(currentItem.tags || [], item.tags || []) * 3;
     score += Number(item.ratingAverage || 0);
+    score += Math.min(Number(item.ratingCount || 0) * 0.1, 2);
 
     return {
       ...item.toObject(),
@@ -85,7 +212,7 @@ export const getTopRatedRecommendations = catchAsync(async (req, res) => {
 export const getPersonalizedRecommendations = catchAsync(async (req, res) => {
   const orders = await Order.find({ user: req.user._id }).populate(
     "items.menuItem",
-    "name category tags"
+    "name category tags price"
   );
 
   if (!orders.length) {
@@ -104,24 +231,27 @@ export const getPersonalizedRecommendations = catchAsync(async (req, res) => {
 
   const categoryFrequency = {};
   const tagFrequency = {};
+  const priceTierFrequency = {};
 
   for (const order of orders) {
     for (const item of order.items || []) {
       if (!item.menuItem) continue;
 
       const menuItem = item.menuItem;
+      const quantity = Number(item.quantity || 0);
 
-      const category = menuItem.category?.toLowerCase();
+      const category = String(menuItem.category || "").toLowerCase();
       if (category) {
-        categoryFrequency[category] =
-          (categoryFrequency[category] || 0) + Number(item.quantity || 0);
+        categoryFrequency[category] = (categoryFrequency[category] || 0) + quantity;
       }
 
       for (const tag of menuItem.tags || []) {
         const normalizedTag = String(tag).toLowerCase();
-        tagFrequency[normalizedTag] =
-          (tagFrequency[normalizedTag] || 0) + Number(item.quantity || 0);
+        tagFrequency[normalizedTag] = (tagFrequency[normalizedTag] || 0) + quantity;
       }
+
+      const priceTier = getPriceTier(menuItem.price);
+      priceTierFrequency[priceTier] = (priceTierFrequency[priceTier] || 0) + quantity;
     }
   }
 
@@ -148,7 +278,9 @@ export const getPersonalizedRecommendations = catchAsync(async (req, res) => {
       score += tagFrequency[String(tag).toLowerCase()] || 0;
     }
 
+    score += priceTierFrequency[getPriceTier(item.price)] || 0;
     score += Number(item.ratingAverage || 0);
+    score += Math.min(Number(item.ratingCount || 0) * 0.05, 2);
 
     return {
       ...item.toObject(),
@@ -177,48 +309,34 @@ export const searchRecommendationsByPreference = catchAsync(async (req, res) => 
 
   const items = await MenuItem.find({ isAvailable: true });
 
-  const keywords = query
+  const rawKeywords = query
     .split(/\s+/)
     .map((word) => word.trim().toLowerCase())
     .filter(Boolean);
 
-  const hasVegetarianIntent =
-    keywords.includes("vegetarian") || keywords.includes("veg");
+  const keywords = expandKeywords(rawKeywords);
 
-  const hasVeganIntent =
-    keywords.includes("vegan");
-
-  const nonVegWords = [
-    "chicken",
-    "beef",
-    "mutton",
-    "lamb",
-    "pork",
-    "fish",
-    "seafood",
-    "prawn",
-    "shrimp",
-    "meat",
-    "egg",
-    "turkey",
-    "bacon",
-    "ham"
-  ];
+  const hasVegetarianIntent = keywords.includes("vegetarian") || keywords.includes("veg");
+  const hasVeganIntent = keywords.includes("vegan");
+  const hasSweetIntent = keywords.includes("sweet") || keywords.includes("dessert");
+  const hasSpicyIntent = keywords.includes("spicy") || keywords.includes("hot");
+  const hasChickenIntent = keywords.includes("chicken");
+  const hasFishIntent = keywords.includes("fish") || keywords.includes("seafood");
+  const wantsCheap = keywords.includes("cheap") || keywords.includes("budget") || keywords.includes("affordable");
+  const wantsPremium = keywords.includes("premium") || keywords.includes("expensive") || keywords.includes("luxury");
+  const wantsDinner = keywords.includes("dinner");
+  const wantsLunch = keywords.includes("lunch");
+  const wantsBreakfast = keywords.includes("breakfast");
 
   const scoredItems = items
     .map((item) => {
       let score = 0;
 
-      const name = String(item.name || "").toLowerCase();
-      const description = String(item.description || "").toLowerCase();
-      const category = String(item.category || "").toLowerCase();
-      const tags = (item.tags || []).map((tag) => String(tag).toLowerCase());
+      const { name, description, category, tags, combinedText } = normalizeItemForSearch(item);
 
-      const combinedText = `${name} ${description} ${category} ${tags.join(" ")}`;
-
-      const containsNonVegWord = nonVegWords.some((word) =>
-        combinedText.includes(word)
-      );
+      const containsNonVegWord = nonVegWords.some((word) => combinedText.includes(word));
+      const containsSweetWord = sweetWords.some((word) => combinedText.includes(word));
+      const containsSpicyWord = spicyWords.some((word) => combinedText.includes(word));
 
       const isVegetarianTagged =
         tags.includes("vegetarian") ||
@@ -231,35 +349,80 @@ export const searchRecommendationsByPreference = catchAsync(async (req, res) => 
         category.includes("vegan");
 
       if (hasVegetarianIntent) {
-        if (containsNonVegWord) {
-          return null;
-        }
-
-        if (isVegetarianTagged) {
-          score += 8;
-        }
+        if (containsNonVegWord) return null;
+        if (isVegetarianTagged) score += 12;
       }
 
       if (hasVeganIntent) {
-        if (containsNonVegWord) {
-          return null;
-        }
+        if (containsNonVegWord) return null;
+        if (!isVeganTagged) return null;
+        score += 14;
+      }
 
-        if (!isVeganTagged) {
-          return null;
-        }
+      if (hasSweetIntent) {
+        if (containsSweetWord) score += 10;
+        else score -= 8;
+      }
 
-        score += 10;
+      if (hasSpicyIntent) {
+        if (containsSpicyWord) score += 9;
+        else score -= 5;
+      }
+
+      if (hasChickenIntent) {
+        if (combinedText.includes("chicken")) score += 12;
+        else score -= 6;
+      }
+
+      if (hasFishIntent) {
+        if (
+          combinedText.includes("fish") ||
+          combinedText.includes("seafood") ||
+          combinedText.includes("prawn") ||
+          combinedText.includes("shrimp")
+        ) {
+          score += 12;
+        } else {
+          score -= 6;
+        }
+      }
+
+      if (wantsCheap) {
+        const tier = getPriceTier(item.price);
+        if (tier === "cheap") score += 8;
+        if (tier === "mid") score += 2;
+        if (tier === "premium") score -= 6;
+      }
+
+      if (wantsPremium) {
+        const tier = getPriceTier(item.price);
+        if (tier === "premium") score += 8;
+        if (tier === "cheap") score -= 3;
+      }
+
+      if (wantsDinner) {
+        if (dinnerWords.some((word) => combinedText.includes(word))) score += 6;
+        if (containsSweetWord) score -= 3;
+      }
+
+      if (wantsLunch) {
+        if (lunchWords.some((word) => combinedText.includes(word))) score += 6;
+      }
+
+      if (wantsBreakfast) {
+        if (breakfastWords.some((word) => combinedText.includes(word))) score += 6;
+        else score -= 2;
       }
 
       for (const keyword of keywords) {
-        if (tags.includes(keyword)) score += 5;
-        if (name.includes(keyword)) score += 4;
-        if (description.includes(keyword)) score += 3;
-        if (category.includes(keyword)) score += 2;
+        if (tags.includes(keyword)) score += 7;
+        if (name.includes(keyword)) score += 6;
+        if (description.includes(keyword)) score += 4;
+        if (category.includes(keyword)) score += 3;
       }
 
-      score += Number(item.ratingAverage || 0);
+      score += Number(item.ratingAverage || 0) * 1.2;
+      score += Math.min(Number(item.ratingCount || 0) * 0.08, 3);
 
       return {
         ...item.toObject(),

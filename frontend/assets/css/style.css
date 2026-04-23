@@ -671,3 +671,89 @@ select option {
     flex-direction: column;
   }
 }
+/* Recommendation quick chips */
+.recommendation-chip-row .recommendation-tag-btn {
+  min-width: 120px;
+}
+
+/* Featured dishes infinite carousel */
+.featured-carousel-shell {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  padding: 0.5rem 0 1rem;
+}
+
+.featured-carousel-track {
+  display: flex;
+  gap: 1.25rem;
+  width: max-content;
+  animation: featuredScroll 32s linear infinite;
+  will-change: transform;
+}
+
+.featured-carousel-shell:hover .featured-carousel-track {
+  animation-play-state: paused;
+}
+
+.featured-dish-card {
+  width: 360px;
+  min-width: 360px;
+  flex: 0 0 360px;
+  border-radius: 28px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.featured-dish-card:hover {
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.16);
+}
+
+.featured-dish-image {
+  height: 300px;
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.featured-carousel-track .inline-actions {
+  gap: 0.7rem;
+}
+
+.featured-carousel-track .btn {
+  min-width: 98px;
+}
+
+@keyframes featuredScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-50% - 0.625rem));
+  }
+}
+
+@media (max-width: 960px) {
+  .featured-dish-card {
+    width: 300px;
+    min-width: 300px;
+    flex: 0 0 300px;
+  }
+
+  .featured-dish-image {
+    height: 240px;
+  }
+}
+
+@media (max-width: 700px) {
+  .featured-dish-card {
+    width: 260px;
+    min-width: 260px;
+    flex: 0 0 260px;
+  }
+
+  .featured-dish-image {
+    height: 210px;
+  }
+}

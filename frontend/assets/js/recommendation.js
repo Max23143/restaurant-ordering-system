@@ -17,6 +17,11 @@ async function fetchPersonalizedRecommendations() {
   };
 }
 
+async function fetchPreferenceRecommendations(query) {
+  const response = await apiRequest(`/recommendations/search?query=${encodeURIComponent(query)}`);
+  return (response.data || []).map(normalizeRecommendationItem);
+}
+
 function normalizeRecommendationItem(item = {}) {
   return {
     _id: item._id || item.id || "",
@@ -34,6 +39,19 @@ function normalizeRecommendationItem(item = {}) {
     tags: Array.isArray(item.tags) ? item.tags : [],
     recommendationScore: Number(item.recommendationScore || 0)
   };
+}
+
+function getRecommendationHint(item) {
+  const tags = (item.tags || []).map((tag) => String(tag).toLowerCase());
+
+  if (tags.includes("vegetarian") || tags.includes("veg")) return "Good veg match";
+  if (tags.includes("vegan")) return "Vegan-friendly";
+  if (tags.includes("spicy")) return "Strong spicy match";
+  if (tags.includes("sweet") || tags.includes("dessert")) return "Sweet option";
+  if (tags.includes("grilled")) return "Grilled choice";
+  if (tags.includes("cheesy") || tags.includes("cheese")) return "Cheesy pick";
+  if (tags.includes("chicken")) return "Chicken-based";
+  return "Recommended for you";
 }
 
 function renderRecommendationCards(items = [], emptyMessage = "No recommendations available.") {
@@ -58,6 +76,10 @@ function renderRecommendationCards(items = [], emptyMessage = "No recommendation
 
         <h3 class="card-title">${item.name}</h3>
         <p class="card-text">${item.description}</p>
+
+        <p class="small" style="margin-top: 0.6rem;">
+          ${getRecommendationHint(item)}
+        </p>
 
         <div class="rating-row">
           <span class="stars">${renderStars(item.rating)}</span>
@@ -92,8 +114,4 @@ function addRecommendedItemToCart(id) {
 
   addToCart(item, 1);
   alert(`${item.name} added to cart.`);
-}
-async function fetchPreferenceRecommendations(query) {
-  const response = await apiRequest(`/recommendations/search?query=${encodeURIComponent(query)}`);
-  return (response.data || []).map(normalizeRecommendationItem);
 }

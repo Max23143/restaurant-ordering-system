@@ -37,14 +37,14 @@
       <div class="form-card">
         <h2 class="section-title">Find Food by Preference</h2>
         <p class="page-subtitle">
-          Try words like spicy, sweet, grilled, cheesy, chicken, vegetarian.
+          Try phrases like spicy vegetarian dinner, sweet dessert, chicken curry, or budget lunch.
         </p>
 
         <div class="toolbar">
           <input
             id="recommendationSearchInput"
             type="text"
-            placeholder="Example: spicy food"
+            placeholder="Example: spicy vegetarian dinner"
           >
           <button
             id="recommendationSearchBtn"
@@ -55,13 +55,15 @@
           </button>
         </div>
 
-        <div class="inline-actions" style="margin-top: 1rem; flex-wrap: wrap;">
+        <div class="inline-actions recommendation-chip-row" style="margin-top: 1rem; flex-wrap: wrap;">
           <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="spicy">Spicy</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="sweet">Sweet</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="grilled">Grilled</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="cheesy">Cheesy</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="sweet dessert">Sweet</button>
           <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="chicken">Chicken</button>
           <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="vegetarian">Vegetarian</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="dessert">Dessert</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="cheap">Budget</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="dinner">Dinner</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="lunch">Lunch</button>
         </div>
 
         <div
@@ -79,7 +81,10 @@
         <h2 class="section-title">Featured Dishes</h2>
         <p class="page-subtitle">Popular dishes from the live menu</p>
       </div>
-      <div id="featuredItems" class="grid grid-4"></div>
+
+      <div class="featured-carousel-shell">
+        <div id="featuredItems" class="featured-carousel-track"></div>
+      </div>
     </div>
   </section>
 
