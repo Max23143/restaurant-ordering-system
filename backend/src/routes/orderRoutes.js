@@ -1,8 +1,6 @@
 import express from "express";
 import {
   createOrder,
-  requestCardPaymentOtp,
-  confirmCardPaymentOtp,
   getMyOrders,
   getMyOrderById,
   getAllOrders,
@@ -15,8 +13,6 @@ const router = express.Router();
 
 /* Customer routes */
 router.post("/", protect, createOrder);
-router.post("/card/request-otp", protect, requestCardPaymentOtp);
-router.post("/card/confirm-otp", protect, confirmCardPaymentOtp);
 router.get("/my-orders", protect, getMyOrders);
 router.get("/my-orders/:id", protect, getMyOrderById);
 

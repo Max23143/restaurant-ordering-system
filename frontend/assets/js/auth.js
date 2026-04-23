@@ -1,38 +1,34 @@
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
   const registerForm = document.getElementById("registerForm");
-  const verifyOtpForm = document.getElementById("verifyOtpForm");
-  const resendOtpBtn = document.getElementById("resendOtpBtn");
 
   if (loginForm) {
     loginForm.addEventListener("submit", loginUser);
   }
 
   if (registerForm) {
-    registerForm.addEventListener("submit", requestRegisterOtp);
-  }
-
-  if (verifyOtpForm) {
-    verifyOtpForm.addEventListener("submit", verifyRegisterOtp);
-  }
-
-  if (resendOtpBtn) {
-    resendOtpBtn.addEventListener("click", resendRegisterOtp);
+    registerForm.addEventListener("submit", registerUser);
   }
 });
 
-let pendingRegisterData = null;
+function buildFullPhoneNumber(countryCode, localPhone) {
+  const cleanCountryCode = String(countryCode || "").trim();
+  const cleanLocalPhone = String(localPhone || "").replace(/\D/g, "");
+
+  if (!cleanCountryCode || !cleanLocalPhone) {
+    return "";
+  }
+
+  return `${cleanCountryCode}${cleanLocalPhone}`;
+}
 
 async function loginUser(event) {
   event.preventDefault();
   hideMessage("authMessage");
 
-  const emailInput = document.getElementById("loginEmail");
-  const passwordInput = document.getElementById("loginPassword");
+  const email = document.getElementById("loginEmail")?.value.trim() || "";
+  const password = document.getElementById("loginPassword")?.value || "";
   const loginBtn = document.getElementById("loginBtn");
-
-  const email = emailInput?.value.trim() || "";
-  const password = passwordInput?.value || "";
 
   if (!email || !password) {
     showMessage("authMessage", "Email and password are required.", "error");
@@ -75,128 +71,61 @@ async function loginUser(event) {
   }
 }
 
-async function requestRegisterOtp(event) {
+async function registerUser(event) {
   event.preventDefault();
   hideMessage("authMessage");
 
   const fullName = document.getElementById("registerName")?.value.trim() || "";
   const email = document.getElementById("registerEmail")?.value.trim() || "";
-  const phone = document.getElementById("registerPhone")?.value.trim() || "";
+  const countryCode = document.getElementById("registerCountryCode")?.value || "";
+  const phoneLocal = document.getElementById("registerPhoneLocal")?.value.trim() || "";
   const password = document.getElementById("registerPassword")?.value || "";
   const registerBtn = document.getElementById("registerBtn");
-  const otpSection = document.getElementById("otpSection");
 
-  if (!fullName || !email || !phone || !password) {
-    showMessage("authMessage", "Full name, email, phone, and password are required.", "error");
+  const fullPhone = buildFullPhoneNumber(countryCode, phoneLocal);
+
+  if (!fullName || !email || !countryCode || !phoneLocal || !password) {
+    showMessage("authMessage", "Full name, email, country code, phone, and password are required.", "error");
     return;
   }
 
-  pendingRegisterData = {
-    fullName,
-    email,
-    phone,
-    password
-  };
+  if (!/^\+\d{7,15}$/.test(fullPhone)) {
+    showMessage("authMessage", "Please enter a valid phone number.", "error");
+    return;
+  }
 
   registerBtn.disabled = true;
-  registerBtn.textContent = "Sending OTP...";
+  registerBtn.textContent = "Registering...";
 
   try {
-    await apiRequest("/auth/register/request-otp", {
-      method: "POST",
-      body: JSON.stringify(pendingRegisterData)
-    });
-
-    otpSection.classList.remove("hide");
-    showMessage("authMessage", "OTP sent successfully. Enter the OTP below to complete registration.", "success");
-
-    const otpInput = document.getElementById("registerOtp");
-    if (otpInput) otpInput.focus();
-  } catch (error) {
-    console.error("OTP request failed:", error);
-    showMessage("authMessage", error.message || "Failed to send OTP.", "error");
-  } finally {
-    registerBtn.disabled = false;
-    registerBtn.textContent = "Send OTP";
-  }
-}
-
-async function verifyRegisterOtp(event) {
-  event.preventDefault();
-  hideMessage("authMessage");
-
-  const verifyOtpBtn = document.getElementById("verifyOtpBtn");
-  const otp = document.getElementById("registerOtp")?.value.trim() || "";
-
-  if (!pendingRegisterData) {
-    showMessage("authMessage", "Registration data is missing. Please request OTP again.", "error");
-    return;
-  }
-
-  if (!otp) {
-    showMessage("authMessage", "Please enter the OTP code.", "error");
-    return;
-  }
-
-  verifyOtpBtn.disabled = true;
-  verifyOtpBtn.textContent = "Verifying...";
-
-  try {
-    const verifyResponse = await apiRequest("/auth/register/verify-otp", {
+    const response = await apiRequest("/auth/register", {
       method: "POST",
       body: JSON.stringify({
-        phone: pendingRegisterData.phone,
-        otp
+        fullName,
+        email,
+        phone: fullPhone,
+        password
       })
     });
 
-    const token = verifyResponse.token || verifyResponse.data?.token;
-    const user = verifyResponse.user || verifyResponse.data?.user;
+    const token = response.token || response.data?.token;
+    const user = response.user || response.data?.user;
 
     if (!token || !user) {
-      throw new Error("Registration verification response is incomplete.");
+      throw new Error("Registration response is incomplete.");
     }
 
     setSession({ token, user });
-    showMessage("authMessage", "Registration completed successfully.", "success");
+    showMessage("authMessage", "Registration successful.", "success");
 
     setTimeout(() => {
       window.location.href = buildFrontendUrl("index.html");
     }, 700);
   } catch (error) {
-    console.error("OTP verification failed:", error);
-    showMessage("authMessage", error.message || "OTP verification failed.", "error");
+    console.error("Registration failed:", error);
+    showMessage("authMessage", error.message || "Registration failed.", "error");
   } finally {
-    verifyOtpBtn.disabled = false;
-    verifyOtpBtn.textContent = "Verify OTP";
-  }
-}
-
-async function resendRegisterOtp() {
-  hideMessage("authMessage");
-
-  const resendOtpBtn = document.getElementById("resendOtpBtn");
-
-  if (!pendingRegisterData) {
-    showMessage("authMessage", "Please fill the registration form first.", "error");
-    return;
-  }
-
-  resendOtpBtn.disabled = true;
-  resendOtpBtn.textContent = "Resending...";
-
-  try {
-    await apiRequest("/auth/register/request-otp", {
-      method: "POST",
-      body: JSON.stringify(pendingRegisterData)
-    });
-
-    showMessage("authMessage", "OTP resent successfully.", "success");
-  } catch (error) {
-    console.error("Resend OTP failed:", error);
-    showMessage("authMessage", error.message || "Failed to resend OTP.", "error");
-  } finally {
-    resendOtpBtn.disabled = false;
-    resendOtpBtn.textContent = "Resend OTP";
+    registerBtn.disabled = false;
+    registerBtn.textContent = "Register";
   }
 }

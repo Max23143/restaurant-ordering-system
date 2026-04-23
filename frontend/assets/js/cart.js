@@ -1,7 +1,5 @@
 document.addEventListener("DOMContentLoaded", renderCartPage);
 
-let pendingCardOrderPayload = null;
-
 function renderCartPage() {
   const items = getCart();
   const listMount = document.getElementById("cartList");
@@ -121,28 +119,6 @@ function renderCartPage() {
           <button class="btn btn-primary" id="placeOrderBtn" type="submit">Confirm Order</button>
         </div>
       </form>
-
-      <div id="paymentOtpSection" class="form-card hide" style="margin-top: 1rem; background: #fffaf5;">
-        <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 0.5rem;">Confirm Card Payment OTP</h3>
-        <p class="page-subtitle" style="margin-bottom: 1rem;">
-          Enter the OTP sent to your registered phone number to confirm this payment.
-        </p>
-
-        <form id="paymentOtpForm" class="form-grid" novalidate>
-          <div class="form-group full">
-            <label for="paymentOtp">OTP Code</label>
-            <input id="paymentOtp" type="text" maxlength="6" placeholder="Enter 6-digit OTP" required>
-          </div>
-
-          <div class="form-group full">
-            <div class="inline-actions">
-              <button class="btn btn-primary" id="confirmPaymentOtpBtn" type="submit">Confirm Payment OTP</button>
-              <button class="btn btn-secondary" id="resendPaymentOtpBtn" type="button">Resend OTP</button>
-              <button class="btn btn-secondary" id="cancelPaymentOtpBtn" type="button">Cancel</button>
-            </div>
-          </div>
-        </form>
-      </div>
     </div>
   `;
 
@@ -158,7 +134,6 @@ function renderCartPage() {
 
   paymentMethodSelect.addEventListener("change", () => {
     toggleCardSection(paymentMethodSelect.value);
-    hidePaymentOtpSection();
   });
 
   const cardNumberInput = document.getElementById("cardNumber");
@@ -167,21 +142,6 @@ function renderCartPage() {
   }
 
   document.getElementById("checkoutForm").addEventListener("submit", submitOrder);
-
-  const paymentOtpForm = document.getElementById("paymentOtpForm");
-  if (paymentOtpForm) {
-    paymentOtpForm.addEventListener("submit", confirmPaymentOtp);
-  }
-
-  const resendPaymentOtpBtn = document.getElementById("resendPaymentOtpBtn");
-  if (resendPaymentOtpBtn) {
-    resendPaymentOtpBtn.addEventListener("click", resendPaymentOtp);
-  }
-
-  const cancelPaymentOtpBtn = document.getElementById("cancelPaymentOtpBtn");
-  if (cancelPaymentOtpBtn) {
-    cancelPaymentOtpBtn.addEventListener("click", cancelPaymentOtpFlow);
-  }
 }
 
 function toggleDeliveryAddress(orderType) {
@@ -210,30 +170,6 @@ function toggleCardSection(paymentMethod) {
   }
 }
 
-function showPaymentOtpSection() {
-  const section = document.getElementById("paymentOtpSection");
-  if (!section) return;
-
-  section.classList.remove("hide");
-  const otpInput = document.getElementById("paymentOtp");
-  if (otpInput) otpInput.focus();
-}
-
-function hidePaymentOtpSection() {
-  const section = document.getElementById("paymentOtpSection");
-  if (!section) return;
-
-  section.classList.add("hide");
-  const otpInput = document.getElementById("paymentOtp");
-  if (otpInput) otpInput.value = "";
-}
-
-function cancelPaymentOtpFlow() {
-  pendingCardOrderPayload = null;
-  hidePaymentOtpSection();
-  showMessage("cartMessage", "Card payment OTP flow cancelled.", "info");
-}
-
 function clearCardFields() {
   const ids = ["cardHolderName", "cardNumber", "expiryMonth", "expiryYear", "cvv"];
   ids.forEach((id) => {
@@ -257,72 +193,6 @@ function handleRemoveItem(id) {
   renderCartPage();
 }
 
-function buildOrderPayload() {
-  const cartItems = getCart();
-  const orderType = document.getElementById("orderType").value;
-  const paymentMethod = document.getElementById("paymentMethod").value;
-  const deliveryAddress = document.getElementById("deliveryAddress").value.trim();
-  const specialInstructions = document.getElementById("specialInstructions").value.trim();
-
-  if (!cartItems.length) {
-    throw new Error("Your cart is empty.");
-  }
-
-  if (orderType === "delivery" && !deliveryAddress) {
-    throw new Error("Delivery address is required for delivery orders.");
-  }
-
-  let paymentDetails = {};
-
-  if (paymentMethod === "card") {
-    const cardHolderName = document.getElementById("cardHolderName").value.trim();
-    const cardNumber = document.getElementById("cardNumber").value.replace(/\s+/g, "");
-    const expiryMonth = document.getElementById("expiryMonth").value.trim();
-    const expiryYear = document.getElementById("expiryYear").value.trim();
-    const cvv = document.getElementById("cvv").value.trim();
-
-    if (!cardHolderName || !cardNumber || !expiryMonth || !expiryYear || !cvv) {
-      throw new Error("Please complete all card details.");
-    }
-
-    if (!/^\d{16}$/.test(cardNumber)) {
-      throw new Error("Card number must be 16 digits.");
-    }
-
-    if (!/^\d{2}$/.test(expiryMonth) || Number(expiryMonth) < 1 || Number(expiryMonth) > 12) {
-      throw new Error("Expiry month must be between 01 and 12.");
-    }
-
-    if (!/^\d{2,4}$/.test(expiryYear)) {
-      throw new Error("Expiry year is invalid.");
-    }
-
-    if (!/^\d{3,4}$/.test(cvv)) {
-      throw new Error("CVV must be 3 or 4 digits.");
-    }
-
-    paymentDetails = {
-      cardHolderName,
-      cardNumber,
-      expiryMonth,
-      expiryYear,
-      cvv
-    };
-  }
-
-  return {
-    items: cartItems.map((item) => ({
-      menuItem: item._id,
-      quantity: Number(item.quantity || 1)
-    })),
-    orderType,
-    paymentMethod,
-    deliveryAddress,
-    specialInstructions,
-    paymentDetails
-  };
-}
-
 async function submitOrder(event) {
   event.preventDefault();
   hideMessage("cartMessage");
@@ -335,112 +205,98 @@ async function submitOrder(event) {
     return;
   }
 
+  const cartItems = getCart();
+  const orderType = document.getElementById("orderType").value;
+  const paymentMethod = document.getElementById("paymentMethod").value;
+  const deliveryAddress = document.getElementById("deliveryAddress").value.trim();
+  const specialInstructions = document.getElementById("specialInstructions").value.trim();
   const placeOrderBtn = document.getElementById("placeOrderBtn");
-  placeOrderBtn.disabled = true;
-  placeOrderBtn.textContent = "Processing...";
 
-  try {
-    const payload = buildOrderPayload();
+  if (!cartItems.length) {
+    showMessage("cartMessage", "Your cart is empty.", "error");
+    return;
+  }
 
-    if (payload.paymentMethod === "card") {
-      pendingCardOrderPayload = payload;
+  if (orderType === "delivery" && !deliveryAddress) {
+    showMessage("cartMessage", "Delivery address is required for delivery orders.", "error");
+    return;
+  }
 
-      await apiRequest("/orders/card/request-otp", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
+  let paymentDetails = {};
 
-      showPaymentOtpSection();
-      showMessage("cartMessage", "Payment OTP sent successfully. Enter the OTP below to confirm your card payment.", "success");
-    } else {
-      await apiRequest("/orders", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
+  if (paymentMethod === "card") {
+    const cardHolderName = document.getElementById("cardHolderName").value.trim();
+    const cardNumber = document.getElementById("cardNumber").value.replace(/\s+/g, "");
+    const expiryMonth = document.getElementById("expiryMonth").value.trim();
+    const expiryYear = document.getElementById("expiryYear").value.trim();
+    const cvv = document.getElementById("cvv").value.trim();
 
-      saveCart([]);
-      showMessage("cartMessage", "Order placed successfully.", "success");
-
-      setTimeout(() => {
-        window.location.href = buildFrontendUrl("order-history.html");
-      }, 700);
+    if (!cardHolderName || !cardNumber || !expiryMonth || !expiryYear || !cvv) {
+      showMessage("cartMessage", "Please complete all card details.", "error");
+      return;
     }
-  } catch (error) {
-    showMessage("cartMessage", error.message || "Failed to place order.", "error");
-  } finally {
-    placeOrderBtn.disabled = false;
-    placeOrderBtn.textContent = "Confirm Order";
+
+    if (!/^\d{16}$/.test(cardNumber)) {
+      showMessage("cartMessage", "Card number must be 16 digits.", "error");
+      return;
+    }
+
+    if (!/^\d{2}$/.test(expiryMonth) || Number(expiryMonth) < 1 || Number(expiryMonth) > 12) {
+      showMessage("cartMessage", "Expiry month must be between 01 and 12.", "error");
+      return;
+    }
+
+    if (!/^\d{2,4}$/.test(expiryYear)) {
+      showMessage("cartMessage", "Expiry year is invalid.", "error");
+      return;
+    }
+
+    if (!/^\d{3,4}$/.test(cvv)) {
+      showMessage("cartMessage", "CVV must be 3 or 4 digits.", "error");
+      return;
+    }
+
+    paymentDetails = {
+      cardHolderName,
+      cardNumber,
+      expiryMonth,
+      expiryYear,
+      cvv
+    };
   }
-}
 
-async function confirmPaymentOtp(event) {
-  event.preventDefault();
-  hideMessage("cartMessage");
+  const payload = {
+    items: cartItems.map((item) => ({
+      menuItem: item._id,
+      quantity: Number(item.quantity || 1)
+    })),
+    orderType,
+    paymentMethod,
+    deliveryAddress,
+    specialInstructions,
+    paymentDetails
+  };
 
-  const otp = document.getElementById("paymentOtp")?.value.trim() || "";
-  const confirmBtn = document.getElementById("confirmPaymentOtpBtn");
-
-  if (!pendingCardOrderPayload) {
-    showMessage("cartMessage", "No pending card payment found. Please request OTP again.", "error");
-    return;
-  }
-
-  if (!otp) {
-    showMessage("cartMessage", "Please enter the OTP code.", "error");
-    return;
-  }
-
-  confirmBtn.disabled = true;
-  confirmBtn.textContent = "Confirming...";
+  placeOrderBtn.disabled = true;
+  placeOrderBtn.textContent = "Confirming Order...";
 
   try {
-    await apiRequest("/orders/card/confirm-otp", {
+    await apiRequest("/orders", {
       method: "POST",
-      body: JSON.stringify({ otp })
+      body: JSON.stringify(payload)
     });
 
-    pendingCardOrderPayload = null;
     saveCart([]);
-    hidePaymentOtpSection();
     clearCardFields();
-
-    showMessage("cartMessage", "Card payment confirmed and order placed successfully.", "success");
+    showMessage("cartMessage", "Order placed successfully.", "success");
 
     setTimeout(() => {
       window.location.href = buildFrontendUrl("order-history.html");
     }, 700);
   } catch (error) {
-    showMessage("cartMessage", error.message || "Payment OTP verification failed.", "error");
+    showMessage("cartMessage", error.message || "Failed to place order.", "error");
   } finally {
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = "Confirm Payment OTP";
-  }
-}
-
-async function resendPaymentOtp() {
-  hideMessage("cartMessage");
-
-  const resendBtn = document.getElementById("resendPaymentOtpBtn");
-
-  if (!pendingCardOrderPayload) {
-    showMessage("cartMessage", "No pending card payment found. Please start again.", "error");
-    return;
-  }
-
-  resendBtn.disabled = true;
-  resendBtn.textContent = "Resending...";
-
-  try {
-    await apiRequest("/orders/card/request-otp", {
-      method: "POST",
-      body: JSON.stringify(pendingCardOrderPayload)
-    });
-
-    showMessage("cartMessage", "Payment OTP resent successfully.", "success");
-  } catch (error) {
-    showMessage("cartMessage", error.message || "Failed to resend payment OTP.", "error");
-  } finally {
-    resendBtn.disabled = false;
-    resendBtn.textContent = "Resend OTP";
+    placeOrderBtn.disabled = false;
+    placeOrderBtn.textContent = "Confirm Order";
   }
 }
