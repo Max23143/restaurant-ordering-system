@@ -757,3 +757,180 @@ select option {
     height: 210px;
   }
 }
+
+/* Recommendation quick chips */
+.recommendation-chip-row .recommendation-tag-btn {
+  min-width: 120px;
+}
+
+/* Recommendation result UI */
+.recommendation-search-meta {
+  margin-top: 1rem;
+}
+
+.recommendation-meta-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 600;
+  border: 1px solid #fdba74;
+}
+
+.recommendation-meta-divider {
+  opacity: 0.6;
+}
+
+.recommendation-results-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.recommendation-result-card {
+  border-radius: 26px;
+  overflow: hidden;
+  transition: transform 0.28s ease, box-shadow 0.28s ease;
+}
+
+.recommendation-result-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.14);
+}
+
+.recommendation-result-image {
+  height: 230px;
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.recommendation-tags-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 0.85rem 0;
+}
+
+.recommendation-match-chip,
+.recommendation-score-chip {
+  padding: 0.42rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.recommendation-match-chip {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.recommendation-score-chip {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+/* Featured dishes infinite carousel */
+.featured-carousel-shell {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  padding: 0.5rem 0 1rem;
+}
+
+.featured-carousel-track {
+  display: flex;
+  gap: 1.25rem;
+  width: max-content;
+  animation: featuredScroll 32s linear infinite;
+  will-change: transform;
+}
+
+.featured-carousel-shell:hover .featured-carousel-track {
+  animation-play-state: paused;
+}
+
+.featured-dish-card {
+  width: 360px;
+  min-width: 360px;
+  flex: 0 0 360px;
+  border-radius: 28px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.featured-dish-card:hover {
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.16);
+}
+
+.featured-dish-image {
+  height: 300px;
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.featured-carousel-track .inline-actions {
+  gap: 0.7rem;
+}
+
+.featured-carousel-track .btn {
+  min-width: 98px;
+}
+
+@keyframes featuredScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-50% - 0.625rem));
+  }
+}
+
+@media (max-width: 1200px) {
+  .recommendation-results-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .featured-dish-card {
+    width: 300px;
+    min-width: 300px;
+    flex: 0 0 300px;
+  }
+
+  .featured-dish-image {
+    height: 240px;
+  }
+
+  .recommendation-results-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .featured-dish-card {
+    width: 260px;
+    min-width: 260px;
+    flex: 0 0 260px;
+  }
+
+  .featured-dish-image {
+    height: 210px;
+  }
+
+  .recommendation-results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recommendation-meta-card {
+    display: flex;
+    flex-wrap: wrap;
+    border-radius: 18px;
+  }
+}

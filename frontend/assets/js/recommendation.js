@@ -19,7 +19,11 @@ async function fetchPersonalizedRecommendations() {
 
 async function fetchPreferenceRecommendations(query) {
   const response = await apiRequest(`/recommendations/search?query=${encodeURIComponent(query)}`);
-  return (response.data || []).map(normalizeRecommendationItem);
+  return {
+    query: response.query || query,
+    count: Number(response.count || 0),
+    items: (response.data || []).map(normalizeRecommendationItem)
+  };
 }
 
 function normalizeRecommendationItem(item = {}) {
@@ -44,14 +48,14 @@ function normalizeRecommendationItem(item = {}) {
 function getRecommendationHint(item) {
   const tags = (item.tags || []).map((tag) => String(tag).toLowerCase());
 
-  if (tags.includes("vegetarian") || tags.includes("veg")) return "Good veg match";
-  if (tags.includes("vegan")) return "Vegan-friendly";
-  if (tags.includes("spicy")) return "Strong spicy match";
-  if (tags.includes("sweet") || tags.includes("dessert")) return "Sweet option";
-  if (tags.includes("grilled")) return "Grilled choice";
-  if (tags.includes("cheesy") || tags.includes("cheese")) return "Cheesy pick";
-  if (tags.includes("chicken")) return "Chicken-based";
-  return "Recommended for you";
+  if (tags.includes("vegetarian") || tags.includes("veg")) return "Vegetarian match";
+  if (tags.includes("vegan")) return "Vegan-friendly option";
+  if (tags.includes("spicy")) return "Spicy match";
+  if (tags.includes("dessert") || tags.includes("sweet")) return "Dessert / sweet match";
+  if (tags.includes("chicken")) return "Chicken match";
+  if (tags.includes("fish") || tags.includes("seafood")) return "Seafood match";
+  if (tags.includes("healthy")) return "Healthy choice";
+  return "Relevant result";
 }
 
 function renderRecommendationCards(items = [], emptyMessage = "No recommendations available.") {
@@ -60,12 +64,13 @@ function renderRecommendationCards(items = [], emptyMessage = "No recommendation
   }
 
   return items.map((item) => `
-    <article class="card">
+    <article class="card recommendation-result-card">
       <img
         src="${item.image}"
         alt="${item.name}"
-        style="height: 220px; width: 100%; object-fit: cover;"
+        class="recommendation-result-image"
       >
+
       <div class="card-body">
         <div class="meta-row">
           <span class="badge">${item.category}</span>
@@ -77,9 +82,10 @@ function renderRecommendationCards(items = [], emptyMessage = "No recommendation
         <h3 class="card-title">${item.name}</h3>
         <p class="card-text">${item.description}</p>
 
-        <p class="small" style="margin-top: 0.6rem;">
-          ${getRecommendationHint(item)}
-        </p>
+        <div class="recommendation-tags-row">
+          <span class="recommendation-match-chip">${getRecommendationHint(item)}</span>
+          <span class="recommendation-score-chip">Score ${item.recommendationScore.toFixed(1)}</span>
+        </div>
 
         <div class="rating-row">
           <span class="stars">${renderStars(item.rating)}</span>

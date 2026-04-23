@@ -26,7 +26,6 @@ async function loadFeaturedItems() {
     }
 
     const duplicatedItems = [...items, ...items];
-
     mount.innerHTML = duplicatedItems.map((item, index) => renderFeaturedCard(item, index >= items.length)).join("");
   } catch (error) {
     mount.innerHTML = `<div class="empty-state">Failed to load featured dishes. ${error.message}</div>`;
@@ -85,12 +84,11 @@ async function loadRecommendedItems() {
   try {
     if (getToken()) {
       const personalized = await fetchPersonalizedRecommendations();
-
       window.__recommendationItems = personalized.items || [];
 
       mount.innerHTML = `
         ${personalized.message ? `<div class="message info">${personalized.message}</div>` : ""}
-        <div class="grid grid-4">
+        <div class="recommendation-results-grid">
           ${renderRecommendationCards(personalized.items || [], "No recommendations available.")}
         </div>
       `;
@@ -101,7 +99,7 @@ async function loadRecommendedItems() {
     window.__recommendationItems = topRated || [];
 
     mount.innerHTML = `
-      <div class="grid grid-4">
+      <div class="recommendation-results-grid">
         ${renderRecommendationCards(topRated || [], "No recommendations available.")}
       </div>
     `;
@@ -114,14 +112,16 @@ async function setupRecommendationSearch() {
   const input = document.getElementById("recommendationSearchInput");
   const button = document.getElementById("recommendationSearchBtn");
   const resultMount = document.getElementById("searchRecommendationResults");
+  const metaMount = document.getElementById("recommendationSearchMeta");
   const quickButtons = document.querySelectorAll(".recommendation-tag-btn");
 
-  if (!input || !button || !resultMount) return;
+  if (!input || !button || !resultMount || !metaMount) return;
 
   const handleSearch = async (queryText) => {
     const query = String(queryText || input.value || "").trim();
 
     if (!query) {
+      metaMount.classList.add("hide");
       resultMount.innerHTML = `<div class="empty-state">Enter a search phrase to get recommendations.</div>`;
       return;
     }
@@ -132,14 +132,25 @@ async function setupRecommendationSearch() {
     try {
       input.value = query;
 
-      const items = await fetchPreferenceRecommendations(query);
-      window.__recommendationItems = items || [];
+      const response = await fetchPreferenceRecommendations(query);
+      const items = response.items || [];
+      window.__recommendationItems = items;
+
+      metaMount.classList.remove("hide");
+      metaMount.innerHTML = `
+        <div class="recommendation-meta-card">
+          <strong>Search:</strong> "${response.query}"
+          <span class="recommendation-meta-divider">•</span>
+          <strong>Results:</strong> ${response.count}
+        </div>
+      `;
 
       resultMount.innerHTML = renderRecommendationCards(
-        items || [],
-        "No dishes matched your preference."
+        items,
+        `No dishes matched "${response.query}". Try a different food preference.`
       );
     } catch (error) {
+      metaMount.classList.add("hide");
       resultMount.innerHTML = `<div class="empty-state">Failed to load recommendations. ${error.message}</div>`;
     } finally {
       button.disabled = false;

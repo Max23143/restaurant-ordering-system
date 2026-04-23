@@ -14,7 +14,7 @@
       <div class="hero-card">
         <h1>Smart Restaurant Ordering and Management System</h1>
         <p>
-          Browse the menu, place orders, reserve tables, leave reviews, and receive personalized dish recommendations.
+          Browse the menu, place orders, reserve tables, leave reviews, and receive more realistic personalized dish recommendations.
         </p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="menu.html">Explore Menu</a>
@@ -37,7 +37,7 @@
       <div class="form-card">
         <h2 class="section-title">Find Food by Preference</h2>
         <p class="page-subtitle">
-          Try phrases like spicy vegetarian dinner, sweet dessert, chicken curry, or budget lunch.
+          Try phrases like spicy vegetarian dinner, sweet dessert, chicken curry, cheap lunch, or healthy vegan meal.
         </p>
 
         <div class="toolbar">
@@ -58,17 +58,19 @@
         <div class="inline-actions recommendation-chip-row" style="margin-top: 1rem; flex-wrap: wrap;">
           <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="spicy">Spicy</button>
           <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="sweet dessert">Sweet</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="chicken">Chicken</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="chicken curry">Chicken</button>
           <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="vegetarian">Vegetarian</button>
           <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="dessert">Dessert</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="cheap">Budget</button>
+          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="cheap lunch">Budget</button>
           <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="dinner">Dinner</button>
           <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="lunch">Lunch</button>
         </div>
 
+        <div id="recommendationSearchMeta" class="recommendation-search-meta hide"></div>
+
         <div
           id="searchRecommendationResults"
-          class="grid grid-4"
+          class="recommendation-results-grid"
           style="margin-top: 1rem;"
         ></div>
       </div>

@@ -21,26 +21,31 @@ const calculateTagOverlap = (sourceTags = [], targetTags = []) => {
 const synonymMap = {
   veg: ["vegetarian", "veg"],
   vegetarian: ["vegetarian", "veg"],
-  vegan: ["vegan"],
+  vegan: ["vegan", "plant-based"],
   spicy: ["spicy", "hot", "chilli", "chili", "masala"],
   hot: ["spicy", "hot", "chilli", "chili"],
   sweet: ["sweet", "dessert", "sugary"],
   dessert: ["dessert", "sweet", "cake", "ice cream", "chocolate"],
-  cheesy: ["cheesy", "cheese"],
-  cheese: ["cheesy", "cheese"],
-  grilled: ["grilled", "bbq", "barbecue", "barbeque"],
   chicken: ["chicken"],
   fish: ["fish", "seafood", "prawn", "shrimp"],
-  cheap: ["cheap", "budget", "low price", "affordable"],
+  seafood: ["fish", "seafood", "prawn", "shrimp"],
+  cheap: ["cheap", "budget", "affordable", "low price"],
+  budget: ["cheap", "budget", "affordable"],
   affordable: ["cheap", "budget", "affordable"],
-  expensive: ["expensive", "premium", "luxury"],
+  premium: ["premium", "expensive", "luxury"],
+  expensive: ["premium", "expensive", "luxury"],
   lunch: ["lunch"],
   dinner: ["dinner"],
   breakfast: ["breakfast"],
   burger: ["burger"],
   curry: ["curry"],
   pizza: ["pizza"],
-  pasta: ["pasta"]
+  pasta: ["pasta"],
+  rice: ["rice"],
+  cake: ["cake", "dessert", "sweet"],
+  healthy: ["healthy", "salad", "light"],
+  grilled: ["grilled", "bbq", "barbecue", "barbeque"],
+  cheesy: ["cheesy", "cheese"]
 };
 
 const nonVegWords = [
@@ -82,6 +87,16 @@ const spicyWords = [
   "masala"
 ];
 
+const dessertWords = [
+  "dessert",
+  "cake",
+  "ice cream",
+  "brownie",
+  "pastry",
+  "sweet",
+  "chocolate"
+];
+
 const dinnerWords = [
   "main course",
   "curry",
@@ -90,7 +105,6 @@ const dinnerWords = [
   "noodles",
   "burger",
   "pizza",
-  "steak",
   "meal"
 ];
 
@@ -142,6 +156,18 @@ const getPriceTier = (price) => {
   if (value <= 8) return "cheap";
   if (value <= 18) return "mid";
   return "premium";
+};
+
+const countMatches = (keywords, fields) => {
+  let count = 0;
+
+  for (const keyword of keywords) {
+    if (fields.some((field) => field.includes(keyword))) {
+      count += 1;
+    }
+  }
+
+  return count;
 };
 
 export const getRecommendationsByMenuItem = catchAsync(async (req, res) => {
@@ -317,8 +343,9 @@ export const searchRecommendationsByPreference = catchAsync(async (req, res) => 
   const keywords = expandKeywords(rawKeywords);
 
   const hasVegetarianIntent = keywords.includes("vegetarian") || keywords.includes("veg");
-  const hasVeganIntent = keywords.includes("vegan");
-  const hasSweetIntent = keywords.includes("sweet") || keywords.includes("dessert");
+  const hasVeganIntent = keywords.includes("vegan") || keywords.includes("plant-based");
+  const hasSweetIntent = keywords.includes("sweet");
+  const hasDessertIntent = keywords.includes("dessert") || keywords.includes("cake");
   const hasSpicyIntent = keywords.includes("spicy") || keywords.includes("hot");
   const hasChickenIntent = keywords.includes("chicken");
   const hasFishIntent = keywords.includes("fish") || keywords.includes("seafood");
@@ -336,6 +363,7 @@ export const searchRecommendationsByPreference = catchAsync(async (req, res) => 
 
       const containsNonVegWord = nonVegWords.some((word) => combinedText.includes(word));
       const containsSweetWord = sweetWords.some((word) => combinedText.includes(word));
+      const containsDessertWord = dessertWords.some((word) => combinedText.includes(word));
       const containsSpicyWord = spicyWords.some((word) => combinedText.includes(word));
 
       const isVegetarianTagged =
@@ -346,7 +374,10 @@ export const searchRecommendationsByPreference = catchAsync(async (req, res) => 
 
       const isVeganTagged =
         tags.includes("vegan") ||
+        tags.includes("plant-based") ||
         category.includes("vegan");
+
+      const keywordFieldMatches = countMatches(keywords, [name, description, category, tags.join(" ")]);
 
       if (hasVegetarianIntent) {
         if (containsNonVegWord) return null;
@@ -360,18 +391,35 @@ export const searchRecommendationsByPreference = catchAsync(async (req, res) => 
       }
 
       if (hasSweetIntent) {
-        if (containsSweetWord) score += 10;
-        else score -= 8;
+        if (containsSweetWord) {
+          score += 10;
+        } else {
+          score -= 10;
+        }
+      }
+
+      if (hasDessertIntent) {
+        if (containsDessertWord) {
+          score += 12;
+        } else {
+          return null;
+        }
       }
 
       if (hasSpicyIntent) {
-        if (containsSpicyWord) score += 9;
-        else score -= 5;
+        if (containsSpicyWord) {
+          score += 10;
+        } else {
+          score -= 8;
+        }
       }
 
       if (hasChickenIntent) {
-        if (combinedText.includes("chicken")) score += 12;
-        else score -= 6;
+        if (combinedText.includes("chicken")) {
+          score += 14;
+        } else {
+          return null;
+        }
       }
 
       if (hasFishIntent) {
@@ -381,9 +429,9 @@ export const searchRecommendationsByPreference = catchAsync(async (req, res) => 
           combinedText.includes("prawn") ||
           combinedText.includes("shrimp")
         ) {
-          score += 12;
+          score += 14;
         } else {
-          score -= 6;
+          return null;
         }
       }
 
@@ -391,27 +439,28 @@ export const searchRecommendationsByPreference = catchAsync(async (req, res) => 
         const tier = getPriceTier(item.price);
         if (tier === "cheap") score += 8;
         if (tier === "mid") score += 2;
-        if (tier === "premium") score -= 6;
+        if (tier === "premium") score -= 8;
       }
 
       if (wantsPremium) {
         const tier = getPriceTier(item.price);
         if (tier === "premium") score += 8;
-        if (tier === "cheap") score -= 3;
+        if (tier === "cheap") score -= 4;
       }
 
       if (wantsDinner) {
         if (dinnerWords.some((word) => combinedText.includes(word))) score += 6;
-        if (containsSweetWord) score -= 3;
+        else score -= 3;
       }
 
       if (wantsLunch) {
         if (lunchWords.some((word) => combinedText.includes(word))) score += 6;
+        else score -= 2;
       }
 
       if (wantsBreakfast) {
         if (breakfastWords.some((word) => combinedText.includes(word))) score += 6;
-        else score -= 2;
+        else score -= 4;
       }
 
       for (const keyword of keywords) {
@@ -423,6 +472,19 @@ export const searchRecommendationsByPreference = catchAsync(async (req, res) => 
 
       score += Number(item.ratingAverage || 0) * 1.2;
       score += Math.min(Number(item.ratingCount || 0) * 0.08, 3);
+      score += keywordFieldMatches * 1.5;
+
+      if (rawKeywords.length >= 2 && keywordFieldMatches === 0) {
+        return null;
+      }
+
+      if (rawKeywords.length >= 2 && keywordFieldMatches < 2 && score < 12) {
+        return null;
+      }
+
+      if (rawKeywords.length === 1 && score < 6) {
+        return null;
+      }
 
       return {
         ...item.toObject(),
