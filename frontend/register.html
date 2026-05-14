@@ -42,40 +42,10 @@
               <option value="+92">Pakistan (+92)</option>
               <option value="+971">UAE (+971)</option>
               <option value="+966">Saudi Arabia (+966)</option>
-              <option value="+974">Qatar (+974)</option>
-              <option value="+968">Oman (+968)</option>
-              <option value="+965">Kuwait (+965)</option>
-              <option value="+973">Bahrain (+973)</option>
               <option value="+49">Germany (+49)</option>
               <option value="+33">France (+33)</option>
               <option value="+39">Italy (+39)</option>
               <option value="+34">Spain (+34)</option>
-              <option value="+31">Netherlands (+31)</option>
-              <option value="+32">Belgium (+32)</option>
-              <option value="+41">Switzerland (+41)</option>
-              <option value="+46">Sweden (+46)</option>
-              <option value="+47">Norway (+47)</option>
-              <option value="+45">Denmark (+45)</option>
-              <option value="+353">Ireland (+353)</option>
-              <option value="+351">Portugal (+351)</option>
-              <option value="+48">Poland (+48)</option>
-              <option value="+43">Austria (+43)</option>
-              <option value="+90">Turkey (+90)</option>
-              <option value="+86">China (+86)</option>
-              <option value="+81">Japan (+81)</option>
-              <option value="+82">South Korea (+82)</option>
-              <option value="+65">Singapore (+65)</option>
-              <option value="+60">Malaysia (+60)</option>
-              <option value="+66">Thailand (+66)</option>
-              <option value="+84">Vietnam (+84)</option>
-              <option value="+63">Philippines (+63)</option>
-              <option value="+27">South Africa (+27)</option>
-              <option value="+20">Egypt (+20)</option>
-              <option value="+234">Nigeria (+234)</option>
-              <option value="+254">Kenya (+254)</option>
-              <option value="+55">Brazil (+55)</option>
-              <option value="+52">Mexico (+52)</option>
-              <option value="+54">Argentina (+54)</option>
             </select>
           </div>
 
@@ -87,6 +57,25 @@
           <div class="form-group full">
             <label for="registerPassword">Password</label>
             <input id="registerPassword" type="password" required>
+
+            <div id="passwordStrengthBox" class="password-strength-box">
+              <div class="password-strength-top">
+                <span>Password Strength:</span>
+                <span id="passwordStrengthText" class="password-strength-text weak">Weak</span>
+              </div>
+
+              <div class="password-strength-bar">
+                <div id="passwordStrengthFill" class="password-strength-fill weak"></div>
+              </div>
+
+              <ul id="passwordSuggestions" class="password-suggestion-list">
+                <li data-rule="length">At least 8 characters</li>
+                <li data-rule="uppercase">At least 1 uppercase letter</li>
+                <li data-rule="lowercase">At least 1 lowercase letter</li>
+                <li data-rule="number">At least 1 number</li>
+                <li data-rule="special">At least 1 special character</li>
+              </ul>
+            </div>
           </div>
 
           <div class="form-group full">

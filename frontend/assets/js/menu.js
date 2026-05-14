@@ -1,101 +1,119 @@
-let allMenuItems = [];
-
 document.addEventListener("DOMContentLoaded", () => {
-  loadMenuPage();
-
-  const searchInput = document.getElementById("searchInput");
-  const categoryFilter = document.getElementById("categoryFilter");
-  const sortFilter = document.getElementById("sortFilter");
-  const availabilityFilter = document.getElementById("availabilityFilter");
-
-  if (searchInput) searchInput.addEventListener("input", applyMenuFilters);
-  if (categoryFilter) categoryFilter.addEventListener("change", applyMenuFilters);
-  if (sortFilter) sortFilter.addEventListener("change", applyMenuFilters);
-  if (availabilityFilter) availabilityFilter.addEventListener("change", applyMenuFilters);
+  loadMenuItems();
 });
 
-async function loadMenuPage() {
-  const menuList = document.getElementById("menuList");
-  if (!menuList) return;
+function normalizeMenuItem(item = {}) {
+  return {
+    _id: item._id || item.id || "",
+    name: item.name || "Unnamed Item",
+    description: item.description || "No description available.",
+    category: item.category || "General",
+    price: Number(item.price || 0),
+    image:
+      item.image ||
+      item.imageUrl ||
+      "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80",
+    isAvailable: item.isAvailable !== false,
+    ratingAverage: Number(item.ratingAverage || 0),
+    ratingCount: Number(item.ratingCount || 0),
+    tags: Array.isArray(item.tags) ? item.tags : []
+  };
+}
+
+async function loadMenuItems() {
+  const menuContainer = document.getElementById("menuContainer");
+  const categoryFilter = document.getElementById("categoryFilter");
+  const searchInput = document.getElementById("menuSearchInput");
+  const sortFilter = document.getElementById("sortFilter");
+  const availableOnly = document.getElementById("availableOnly");
+
+  if (!menuContainer) return;
 
   try {
     const response = await apiRequest("/menu");
-    const rawItems = response.data || [];
-    allMenuItems = rawItems.map(normalizeMenuItem);
+    const items = (response.data || []).map(normalizeMenuItem);
 
-    populateCategoryFilter(allMenuItems);
-    renderMenuList(allMenuItems);
+    populateCategoryFilter(items, categoryFilter);
+
+    const applyFilters = () => {
+      let filteredItems = [...items];
+
+      const selectedCategory = categoryFilter?.value?.trim().toLowerCase() || "all";
+      const searchText = searchInput?.value?.trim().toLowerCase() || "";
+      const sortValue = sortFilter?.value || "";
+      const availableOnlyChecked = availableOnly?.checked || false;
+
+      if (selectedCategory !== "all") {
+        filteredItems = filteredItems.filter(
+          (item) => String(item.category).toLowerCase() === selectedCategory
+        );
+      }
+
+      if (searchText) {
+        filteredItems = filteredItems.filter((item) => {
+          const combined = `
+            ${item.name}
+            ${item.description}
+            ${item.category}
+            ${(item.tags || []).join(" ")}
+          `.toLowerCase();
+
+          return combined.includes(searchText);
+        });
+      }
+
+      if (availableOnlyChecked) {
+        filteredItems = filteredItems.filter((item) => item.isAvailable);
+      }
+
+      if (sortValue === "rating") {
+        filteredItems.sort((a, b) => b.ratingAverage - a.ratingAverage);
+      } else if (sortValue === "priceLowHigh") {
+        filteredItems.sort((a, b) => a.price - b.price);
+      } else if (sortValue === "priceHighLow") {
+        filteredItems.sort((a, b) => b.price - a.price);
+      } else if (sortValue === "nameAZ") {
+        filteredItems.sort((a, b) => a.name.localeCompare(b.name));
+      }
+
+      renderMenuItems(filteredItems, menuContainer);
+    };
+
+    if (categoryFilter) categoryFilter.addEventListener("change", applyFilters);
+    if (searchInput) searchInput.addEventListener("input", applyFilters);
+    if (sortFilter) sortFilter.addEventListener("change", applyFilters);
+    if (availableOnly) availableOnly.addEventListener("change", applyFilters);
+
+    applyFilters();
   } catch (error) {
-    menuList.innerHTML = `<div class="empty-state">Failed to load menu items. ${error.message}</div>`;
+    menuContainer.innerHTML = `
+      <div class="empty-state">
+        Failed to load menu items. ${error.message}
+      </div>
+    `;
   }
 }
 
-function populateCategoryFilter(items) {
-  const select = document.getElementById("categoryFilter");
-  if (!select) return;
+function populateCategoryFilter(items, categoryFilter) {
+  if (!categoryFilter) return;
 
-  const categories = [...new Set(items.map((item) => item.category).filter(Boolean))].sort();
+  const categories = [...new Set(items.map((item) => String(item.category || "General")))].sort();
 
-  select.innerHTML = `
-    <option value="">All Categories</option>
-    ${categories.map((category) => `<option value="${category}">${category}</option>`).join("")}
+  categoryFilter.innerHTML = `
+    <option value="all">All Categories</option>
+    ${categories.map((category) => `<option value="${category.toLowerCase()}">${category}</option>`).join("")}
   `;
 }
 
-function applyMenuFilters() {
-  const searchValue = document.getElementById("searchInput")?.value.trim().toLowerCase() || "";
-  const categoryValue = document.getElementById("categoryFilter")?.value || "";
-  const sortValue = document.getElementById("sortFilter")?.value || "ratingDesc";
-  const availabilityOnly = document.getElementById("availabilityFilter")?.checked || false;
-
-  let filtered = [...allMenuItems].filter((item) => {
-    const matchesSearch =
-      !searchValue ||
-      item.name.toLowerCase().includes(searchValue) ||
-      item.description.toLowerCase().includes(searchValue) ||
-      item.category.toLowerCase().includes(searchValue);
-
-    const matchesCategory = !categoryValue || item.category === categoryValue;
-    const matchesAvailability = !availabilityOnly || item.isAvailable;
-
-    return matchesSearch && matchesCategory && matchesAvailability;
-  });
-
-  switch (sortValue) {
-    case "priceAsc":
-      filtered.sort((a, b) => a.price - b.price);
-      break;
-    case "priceDesc":
-      filtered.sort((a, b) => b.price - a.price);
-      break;
-    case "nameAsc":
-      filtered.sort((a, b) => a.name.localeCompare(b.name));
-      break;
-    case "ratingDesc":
-    default:
-      filtered.sort((a, b) => b.rating - a.rating);
-      break;
-  }
-
-  renderMenuList(filtered);
-}
-
-function renderMenuList(items) {
-  const mount = document.getElementById("menuList");
-  if (!mount) return;
-
+function renderMenuItems(items, container) {
   if (!items.length) {
-    mount.innerHTML = `<div class="empty-state">No menu items match your search.</div>`;
+    container.innerHTML = `<div class="empty-state">No menu items found.</div>`;
     return;
   }
 
-  mount.innerHTML = items.map((item) => `
+  container.innerHTML = items.map((item) => `
     <article class="card">
-      <img
-        src="${item.image}"
-        alt="${item.name}"
-        style="height: 220px; width: 100%; object-fit: cover;"
-      >
+      <img src="${item.image}" alt="${item.name}" style="height: 220px; width: 100%; object-fit: cover;">
       <div class="card-body">
         <div class="meta-row">
           <span class="badge">${item.category}</span>
@@ -108,15 +126,15 @@ function renderMenuList(items) {
         <p class="card-text">${item.description}</p>
 
         <div class="rating-row">
-          <span class="stars">${renderStars(item.rating)}</span>
-          <span class="small">${item.rating.toFixed(1)}</span>
+          <span class="stars">${renderStars(item.ratingAverage)}</span>
+          <span class="small">${item.ratingAverage.toFixed(1)} (${item.ratingCount} reviews)</span>
         </div>
 
         <div class="price-row">
           <strong>${formatCurrency(item.price)}</strong>
           <div class="inline-actions">
-            <a class="btn btn-secondary" href="${buildFrontendUrl(`dish-details.html?id=${item._id}`)}">Details</a>
-            <button class="btn btn-primary" onclick="handleMenuAddToCart('${item._id}')">Add</button>
+            <a class="btn btn-secondary" href="${buildFrontendUrl(`dish-details.html?id=${item._id}`)}">View</a>
+            <button class="btn btn-primary" onclick="addMenuItemToCart('${item._id}')">Add</button>
           </div>
         </div>
       </div>
@@ -124,15 +142,24 @@ function renderMenuList(items) {
   `).join("");
 }
 
-function handleMenuAddToCart(id) {
-  const item = allMenuItems.find((menuItem) => menuItem._id === id);
-  if (!item) return;
+async function addMenuItemToCart(id) {
+  try {
+    const response = await apiRequest(`/menu/${id}`);
+    const item = normalizeMenuItem(response.data || {});
 
-  if (!item.isAvailable) {
-    alert("This item is currently unavailable.");
-    return;
+    if (!item._id) {
+      alert("Item not found.");
+      return;
+    }
+
+    if (!item.isAvailable) {
+      alert("This item is currently unavailable.");
+      return;
+    }
+
+    addToCart(item, 1);
+    alert(`${item.name} added to cart.`);
+  } catch (error) {
+    alert(error.message || "Failed to add item to cart.");
   }
-
-  addToCart(item, 1);
-  alert(`${item.name} added to cart.`);
 }

@@ -5,25 +5,26 @@ const userSchema = new mongoose.Schema(
   {
     fullName: {
       type: String,
-      required: [true, "Full name is required"],
+      required: true,
       trim: true
     },
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: true,
       unique: true,
       lowercase: true,
       trim: true
     },
-    password: {
-      type: String,
-      required: [true, "Password is required"],
-      minlength: 6,
-      select: false
-    },
     phone: {
       type: String,
+      required: true,
       trim: true
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 6,
+      select: false
     },
     role: {
       type: String,
@@ -33,6 +34,14 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true
+    },
+    resetPasswordToken: {
+      type: String,
+      default: ""
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null
     }
   },
   {
@@ -41,9 +50,12 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password")) {
+    return next();
+  }
 
-  this.password = await bcrypt.hash(this.password, 10);
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 

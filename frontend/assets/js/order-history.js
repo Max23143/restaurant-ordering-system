@@ -1,7 +1,44 @@
-document.addEventListener("DOMContentLoaded", loadOrderHistory);
+document.addEventListener("DOMContentLoaded", () => {
+  loadOrderHistory();
+});
+
+function formatDateTime(value) {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function formatOrderItems(items = []) {
+  if (!Array.isArray(items) || !items.length) {
+    return "No items";
+  }
+
+  return items
+    .map((item) => {
+      const name =
+        item.name ||
+        item.menuItem?.name ||
+        "Unnamed item";
+
+      return `${name} x ${Number(item.quantity || 0)}`;
+    })
+    .join("<br>");
+}
 
 async function loadOrderHistory() {
-  const mount = document.getElementById("orderHistoryTable");
+  const mount = document.getElementById("orderHistoryContainer");
   if (!mount) return;
 
   if (!getToken()) {
@@ -19,8 +56,8 @@ async function loadOrderHistory() {
     }
 
     mount.innerHTML = `
-      <div class="table-wrap">
-        <table>
+      <div class="table-responsive">
+        <table class="styled-table">
           <thead>
             <tr>
               <th>Order ID</th>
@@ -30,44 +67,33 @@ async function loadOrderHistory() {
               <th>Total</th>
               <th>Status</th>
               <th>Payment</th>
-              <th>Payment Status</th>
-              <th>Card</th>
             </tr>
           </thead>
           <tbody>
-            ${orders.map((order) => `
-              <tr>
-                <td>${order._id || "N/A"}</td>
-                <td>${formatDateTime(order.createdAt)}</td>
-                <td>${capitalizeText(order.orderType || "delivery")}</td>
-                <td>
-                  ${(order.items || []).map((item) => `
-                    <div>
-                      ${(item.name || item.menuItem?.name || "Item")} x ${item.quantity || 1}
-                    </div>
-                  `).join("")}
-                </td>
-                <td>${formatCurrency(order.totalAmount || 0)}</td>
-                <td>${capitalizeText(order.status || "pending")}</td>
-                <td>${capitalizeText(order.paymentMethod || "cash")}</td>
-                <td>${capitalizeText(order.paymentDetails?.paymentStatus || "pending")}</td>
-                <td>
-                  ${order.paymentMethod === "card"
-                    ? `${order.paymentDetails?.cardHolderName || "Card"} (${order.paymentDetails?.cardLast4 || "****"})`
-                    : "-"}
-                </td>
-              </tr>
-            `).join("")}
+            ${orders
+              .map(
+                (order) => `
+                  <tr>
+                    <td>${order._id || "N/A"}</td>
+                    <td>${formatDateTime(order.createdAt)}</td>
+                    <td>${order.orderType || "N/A"}</td>
+                    <td>${formatOrderItems(order.items)}</td>
+                    <td>${formatCurrency(order.totalAmount || 0)}</td>
+                    <td>${order.status || "N/A"}</td>
+                    <td>${order.paymentMethod || "N/A"}</td>
+                  </tr>
+                `
+              )
+              .join("")}
           </tbody>
         </table>
       </div>
     `;
   } catch (error) {
-    mount.innerHTML = `<div class="empty-state">Failed to load order history. ${error.message}</div>`;
+    mount.innerHTML = `
+      <div class="empty-state">
+        Failed to load order history. ${error.message}
+      </div>
+    `;
   }
-}
-
-function capitalizeText(value = "") {
-  if (!value) return "N/A";
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }

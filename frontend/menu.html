@@ -8,29 +8,35 @@
 </head>
 <body>
   <div id="navbar"></div>
-  
+
   <main class="container">
-    <div class="page-header">
+    <section class="page-header">
       <h1 class="page-title">Restaurant Menu</h1>
       <p class="page-subtitle">Browse, search, and filter dishes available in the system.</p>
-    </div>
-
-    <section class="section">
-      <div class="toolbar">
-        <input id="searchInput" type="text" placeholder="Search by dish name or description">
-        <select id="categoryFilter"></select>
-        <select id="sortFilter">
-          <option value="ratingDesc">Sort by Rating</option>
-          <option value="priceAsc">Price: Low to High</option>
-          <option value="priceDesc">Price: High to Low</option>
-          <option value="nameAsc">Name: A to Z</option>
-        </select>
-        <label class="form-card" style="display:flex;align-items:center;gap:0.75rem;">
-          <input id="availabilityFilter" type="checkbox" style="width:auto;"> Available only
-        </label>
-      </div>
-      <div id="menuList" class="grid grid-4"></div>
     </section>
+
+    <section class="toolbar" style="margin-bottom: 1.5rem;">
+      <input id="menuSearchInput" type="text" placeholder="Search by dish name or description">
+
+      <select id="categoryFilter">
+        <option value="all">All Categories</option>
+      </select>
+
+      <select id="sortFilter">
+        <option value="">Sort by Default</option>
+        <option value="rating">Sort by Rating</option>
+        <option value="priceLowHigh">Price: Low to High</option>
+        <option value="priceHighLow">Price: High to Low</option>
+        <option value="nameAZ">Name: A to Z</option>
+      </select>
+
+      <label class="checkbox-label" style="display:flex;align-items:center;gap:0.6rem;padding:0.9rem 1rem;border:1px solid #dbe2ea;border-radius:18px;background:#fff;">
+        <input id="availableOnly" type="checkbox">
+        <span>Available only</span>
+      </label>
+    </section>
+
+    <section id="menuContainer" class="grid grid-4"></section>
   </main>
 
   <div id="footer"></div>
