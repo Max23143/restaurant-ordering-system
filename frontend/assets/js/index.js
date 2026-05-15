@@ -17,7 +17,8 @@ async function loadFeaturedItems() {
   try {
     const response = await apiRequest("/menu");
     const items = (response.data || [])
-      .filter((item) => item.isAvailable !== false)
+      .map(normalizeMenuItem)
+      .filter((item) => item.isAvailable)
       .slice(0, 8);
 
     if (!items.length) {
@@ -25,56 +26,11 @@ async function loadFeaturedItems() {
       return;
     }
 
-    const duplicatedItems = [...items, ...items];
-    mount.innerHTML = duplicatedItems.map((item, index) => renderFeaturedCard(item, index >= items.length)).join("");
+    mount.innerHTML = items.map((item) => renderHomeMenuCard(item)).join("");
   } catch (error) {
+    console.error("Featured items error:", error);
     mount.innerHTML = `<div class="empty-state">Failed to load featured dishes. ${error.message}</div>`;
   }
-}
-
-function renderFeaturedCard(item, isClone = false) {
-  const image =
-    item.image ||
-    item.imageUrl ||
-    "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80";
-
-  const ratingAverage = Number(item.ratingAverage || 0);
-  const ratingCount = Number(item.ratingCount || 0);
-
-  return `
-    <article class="card featured-dish-card ${isClone ? "featured-clone" : ""}">
-      <img
-        src="${image}"
-        alt="${item.name || "Dish"}"
-        class="featured-dish-image"
-      >
-
-      <div class="card-body">
-        <div class="meta-row">
-          <span class="badge">${item.category || "General"}</span>
-          <span class="badge ${item.isAvailable !== false ? "badge-success" : "badge-muted"}">
-            ${item.isAvailable !== false ? "Available" : "Unavailable"}
-          </span>
-        </div>
-
-        <h3 class="card-title">${item.name || "Unnamed Dish"}</h3>
-        <p class="card-text">${item.description || "No description available."}</p>
-
-        <div class="rating-row">
-          <span class="stars">${renderStars(ratingAverage)}</span>
-          <span class="small">${ratingAverage.toFixed(1)} (${ratingCount} reviews)</span>
-        </div>
-
-        <div class="price-row">
-          <strong>${formatCurrency(item.price || 0)}</strong>
-          <div class="inline-actions">
-            <a class="btn btn-secondary" href="${buildFrontendUrl(`dish-details.html?id=${item._id}`)}">View</a>
-            <button class="btn btn-primary" onclick="addFeaturedItemToCart('${item._id}')">Add</button>
-          </div>
-        </div>
-      </div>
-    </article>
-  `;
 }
 
 async function loadRecommendedItems() {
@@ -82,29 +38,78 @@ async function loadRecommendedItems() {
   if (!mount) return;
 
   try {
+    let items = [];
+
     if (getToken()) {
       const personalized = await fetchPersonalizedRecommendations();
-      window.__recommendationItems = personalized.items || [];
+      items = personalized.items || [];
+    } else {
+      items = await fetchTopRatedRecommendations();
+    }
 
-      mount.innerHTML = `
-        ${personalized.message ? `<div class="message info">${personalized.message}</div>` : ""}
-        <div class="recommendation-results-grid">
-          ${renderRecommendationCards(personalized.items || [], "No recommendations available.")}
-        </div>
-      `;
+    if (!items.length) {
+      mount.innerHTML = `<div class="empty-state">No recommendations available.</div>`;
       return;
     }
 
-    const topRated = await fetchTopRatedRecommendations();
-    window.__recommendationItems = topRated || [];
-
-    mount.innerHTML = `
-      <div class="recommendation-results-grid">
-        ${renderRecommendationCards(topRated || [], "No recommendations available.")}
-      </div>
-    `;
+    mount.innerHTML = items.map((item) => renderHomeMenuCard(item, true)).join("");
   } catch (error) {
+    console.error("Recommended items error:", error);
     mount.innerHTML = `<div class="empty-state">Failed to load recommendations. ${error.message}</div>`;
+  }
+}
+
+function renderHomeMenuCard(item, recommended = false) {
+  return `
+    <article class="card">
+      <img src="${item.image}" alt="${item.name}" style="height: 220px; width: 100%; object-fit: cover;">
+      <div class="card-body">
+        <div class="meta-row">
+          <span class="badge">${item.category}</span>
+          <span class="badge ${item.isAvailable ? "badge-success" : "badge-muted"}">
+            ${item.isAvailable ? "Available" : "Unavailable"}
+          </span>
+        </div>
+
+        <h3 class="card-title">${item.name}</h3>
+        <p class="card-text">${item.description}</p>
+
+        <div class="rating-row">
+          <span class="stars">${renderStars(item.ratingAverage)}</span>
+          <span class="small">${item.ratingAverage.toFixed(1)} (${item.ratingCount} reviews)</span>
+        </div>
+
+        <div class="price-row">
+          <strong>${formatCurrency(item.price)}</strong>
+          <div class="inline-actions">
+            <a class="btn btn-secondary" href="${buildFrontendUrl(`dish-details.html?id=${item._id}`)}">View</a>
+            <button class="btn btn-primary" onclick="${recommended ? `addRecommendedItemToCart('${item._id}')` : `addHomeItemToCart('${item._id}')`}">Add</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+async function addHomeItemToCart(id) {
+  try {
+    const response = await apiRequest(`/menu/${id}`);
+    const item = normalizeMenuItem(response.data || {});
+
+    if (!item._id) {
+      alert("Item not found.");
+      return;
+    }
+
+    if (!item.isAvailable) {
+      alert("This item is currently unavailable.");
+      return;
+    }
+
+    addToCart(item, 1);
+    alert(`${item.name} added to cart.`);
+  } catch (error) {
+    alert(error.message || "Failed to add item to cart.");
   }
 }
 
@@ -133,8 +138,6 @@ async function setupRecommendationSearch() {
       input.value = query;
 
       const response = await fetchPreferenceRecommendations(query);
-      const items = response.items || [];
-      window.__recommendationItems = items;
 
       metaMount.classList.remove("hide");
       metaMount.innerHTML = `
@@ -145,11 +148,13 @@ async function setupRecommendationSearch() {
         </div>
       `;
 
-      resultMount.innerHTML = renderRecommendationCards(
-        items,
-        `No dishes matched "${response.query}". Try a different food preference.`
-      );
+      if (!response.items.length) {
+        resultMount.innerHTML = `<div class="empty-state">No dishes matched "${response.query}".</div>`;
+      } else {
+        resultMount.innerHTML = response.items.map((item) => renderHomeMenuCard(item, true)).join("");
+      }
     } catch (error) {
+      console.error("Recommendation search error:", error);
       metaMount.classList.add("hide");
       resultMount.innerHTML = `<div class="empty-state">Failed to load recommendations. ${error.message}</div>`;
     } finally {
@@ -173,26 +178,4 @@ async function setupRecommendationSearch() {
       handleSearch(query);
     });
   });
-}
-
-async function addFeaturedItemToCart(id) {
-  try {
-    const response = await apiRequest(`/menu/${id}`);
-    const item = response.data;
-
-    if (!item) {
-      alert("Item not found.");
-      return;
-    }
-
-    if (item.isAvailable === false) {
-      alert("This item is currently unavailable.");
-      return;
-    }
-
-    addToCart(item, 1);
-    alert(`${item.name} added to cart.`);
-  } catch (error) {
-    alert(error.message || "Failed to add item to cart.");
-  }
 }

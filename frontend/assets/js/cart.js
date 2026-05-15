@@ -1,284 +1,105 @@
-document.addEventListener("DOMContentLoaded", renderCartPage);
+document.addEventListener("DOMContentLoaded", () => {
+  renderCartPage();
+  setupCheckoutForm();
+});
 
 function renderCartPage() {
-  const items = getCart();
-  const listMount = document.getElementById("cartList");
-  const summaryMount = document.getElementById("cartSummary");
+  const cartItemsMount = document.getElementById("cartItemsContainer");
+  const totalItemsElement = document.getElementById("checkoutTotalItems");
+  const totalAmountElement = document.getElementById("checkoutTotalAmount");
 
-  if (!listMount || !summaryMount) return;
+  if (!cartItemsMount) return;
 
-  if (!items.length) {
-    listMount.innerHTML = `<div class="empty-state">Your cart is empty.</div>`;
-    summaryMount.innerHTML = "";
+  const cart = getCart();
+
+  if (!cart.length) {
+    cartItemsMount.innerHTML = `<div class="empty-state">Your cart is empty.</div>`;
+    if (totalItemsElement) totalItemsElement.textContent = "0";
+    if (totalAmountElement) totalAmountElement.textContent = formatCurrency(0);
     return;
   }
 
-  listMount.innerHTML = items.map((item) => `
-    <article class="card">
-      <div class="card-body cart-item">
-        <img
-          src="${item.image}"
-          alt="${item.name}"
-          style="height: 100px; width: 120px; object-fit: cover; border-radius: 14px;"
-        >
-
+  cartItemsMount.innerHTML = cart.map((item) => `
+    <article class="card" style="margin-bottom:1rem;">
+      <div class="card-body" style="display:grid;grid-template-columns:140px 1fr;gap:1rem;align-items:start;">
+        <img src="${item.image}" alt="${item.name}" style="width:140px;height:140px;object-fit:cover;border-radius:16px;">
         <div>
           <h3 class="card-title">${item.name}</h3>
-          <p class="card-text">${item.description}</p>
-          <p><strong>${formatCurrency(item.price)}</strong></p>
-        </div>
+          <p class="card-text">${item.description || ""}</p>
+          <strong>${formatCurrency(item.price)}</strong>
 
-        <div>
-          <label class="small" for="qty-${item._id}">Quantity</label>
-          <input
-            id="qty-${item._id}"
-            type="number"
-            min="1"
-            value="${item.quantity}"
-            onchange="handleQuantityChange('${item._id}', this.value)"
-          >
-          <div style="margin-top: 0.75rem;">
-            <button class="btn btn-danger" onclick="handleRemoveItem('${item._id}')">Remove</button>
+          <div style="margin-top:1rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+            <input
+              type="number"
+              min="1"
+              value="${item.quantity}"
+              onchange="changeCartQuantity('${item._id}', this.value)"
+              style="max-width:140px;"
+            >
+            <button class="btn btn-danger" onclick="removeCartItem('${item._id}')">Remove</button>
           </div>
         </div>
       </div>
     </article>
   `).join("");
 
-  summaryMount.innerHTML = `
-    <div class="form-card">
-      <h2 class="section-title">Checkout Summary</h2>
-      <p>Total items: <strong>${items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)}</strong></p>
-      <p>Total amount: <strong>${formatCurrency(getCartTotal())}</strong></p>
-
-      <div id="cartMessage" class="message hide"></div>
-
-      <form id="checkoutForm" class="form-grid" novalidate>
-        <div class="form-group">
-          <label for="orderType">Order Type</label>
-          <select id="orderType" required>
-            <option value="delivery">Delivery</option>
-            <option value="pickup">Pickup</option>
-            <option value="dine-in">Dine-in</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="paymentMethod">Payment Method</label>
-          <select id="paymentMethod" required>
-            <option value="cash">Cash</option>
-            <option value="card">Card</option>
-            <option value="online">Online</option>
-          </select>
-        </div>
-
-        <div class="form-group full">
-          <label for="deliveryAddress">Delivery Address</label>
-          <textarea id="deliveryAddress" placeholder="Required for delivery orders"></textarea>
-        </div>
-
-        <div id="cardPaymentSection" class="form-group full hide">
-          <div class="form-card" style="padding: 1rem; background: #fffaf5;">
-            <h3 class="section-title" style="font-size: 1.2rem; margin-bottom: 1rem;">Card Details</h3>
-
-            <div class="form-grid">
-              <div class="form-group full">
-                <label for="cardHolderName">Card Holder Name</label>
-                <input id="cardHolderName" type="text" placeholder="Name on card">
-              </div>
-
-              <div class="form-group full">
-                <label for="cardNumber">Card Number</label>
-                <input id="cardNumber" type="text" maxlength="19" placeholder="1234 5678 9012 3456">
-              </div>
-
-              <div class="form-group">
-                <label for="expiryMonth">Expiry Month</label>
-                <input id="expiryMonth" type="text" maxlength="2" placeholder="MM">
-              </div>
-
-              <div class="form-group">
-                <label for="expiryYear">Expiry Year</label>
-                <input id="expiryYear" type="text" maxlength="4" placeholder="YY or YYYY">
-              </div>
-
-              <div class="form-group">
-                <label for="cvv">CVV</label>
-                <input id="cvv" type="password" maxlength="4" placeholder="123">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group full">
-          <label for="specialInstructions">Special Instructions</label>
-          <textarea id="specialInstructions" placeholder="Optional instructions"></textarea>
-        </div>
-
-        <div class="form-group full">
-          <button class="btn btn-primary" id="placeOrderBtn" type="submit">Confirm Order</button>
-        </div>
-      </form>
-    </div>
-  `;
-
-  const orderTypeSelect = document.getElementById("orderType");
-  const paymentMethodSelect = document.getElementById("paymentMethod");
-
-  toggleDeliveryAddress(orderTypeSelect.value);
-  toggleCardSection(paymentMethodSelect.value);
-
-  orderTypeSelect.addEventListener("change", () => {
-    toggleDeliveryAddress(orderTypeSelect.value);
-  });
-
-  paymentMethodSelect.addEventListener("change", () => {
-    toggleCardSection(paymentMethodSelect.value);
-  });
-
-  const cardNumberInput = document.getElementById("cardNumber");
-  if (cardNumberInput) {
-    cardNumberInput.addEventListener("input", formatCardNumberInput);
+  if (totalItemsElement) {
+    totalItemsElement.textContent = String(
+      cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+    );
   }
 
-  document.getElementById("checkoutForm").addEventListener("submit", submitOrder);
-}
-
-function toggleDeliveryAddress(orderType) {
-  const deliveryAddressInput = document.getElementById("deliveryAddress");
-  if (!deliveryAddressInput) return;
-
-  if (orderType === "delivery") {
-    deliveryAddressInput.disabled = false;
-    deliveryAddressInput.placeholder = "Enter delivery address";
-  } else {
-    deliveryAddressInput.disabled = true;
-    deliveryAddressInput.value = "";
-    deliveryAddressInput.placeholder = "Not required for this order type";
+  if (totalAmountElement) {
+    totalAmountElement.textContent = formatCurrency(getCartTotal());
   }
 }
 
-function toggleCardSection(paymentMethod) {
-  const cardSection = document.getElementById("cardPaymentSection");
-  if (!cardSection) return;
-
-  if (paymentMethod === "card") {
-    cardSection.classList.remove("hide");
-  } else {
-    cardSection.classList.add("hide");
-    clearCardFields();
-  }
-}
-
-function clearCardFields() {
-  const ids = ["cardHolderName", "cardNumber", "expiryMonth", "expiryYear", "cvv"];
-  ids.forEach((id) => {
-    const input = document.getElementById(id);
-    if (input) input.value = "";
-  });
-}
-
-function formatCardNumberInput(event) {
-  const digitsOnly = event.target.value.replace(/\D/g, "").slice(0, 16);
-  event.target.value = digitsOnly.replace(/(.{4})/g, "$1 ").trim();
-}
-
-function handleQuantityChange(id, value) {
-  updateCartItemQuantity(id, value);
+function changeCartQuantity(id, quantity) {
+  updateCartItemQuantity(id, quantity);
   renderCartPage();
 }
 
-function handleRemoveItem(id) {
+function removeCartItem(id) {
   removeFromCart(id);
   renderCartPage();
 }
 
+function setupCheckoutForm() {
+  const form = document.getElementById("checkoutForm");
+  if (!form) return;
+
+  form.addEventListener("submit", submitOrder);
+}
+
 async function submitOrder(event) {
   event.preventDefault();
-  hideMessage("cartMessage");
+  hideMessage("checkoutMessage");
 
   if (!getToken()) {
-    showMessage("cartMessage", "Please log in before placing an order.", "error");
-    setTimeout(() => {
-      window.location.href = buildFrontendUrl("login.html");
-    }, 700);
+    showMessage("checkoutMessage", "Please log in before placing an order.", "error");
     return;
   }
 
-  const cartItems = getCart();
-  const orderType = document.getElementById("orderType").value;
-  const paymentMethod = document.getElementById("paymentMethod").value;
-  const deliveryAddress = document.getElementById("deliveryAddress").value.trim();
-  const specialInstructions = document.getElementById("specialInstructions").value.trim();
-  const placeOrderBtn = document.getElementById("placeOrderBtn");
+  const cart = getCart();
 
-  if (!cartItems.length) {
-    showMessage("cartMessage", "Your cart is empty.", "error");
+  if (!cart.length) {
+    showMessage("checkoutMessage", "Your cart is empty.", "error");
     return;
   }
 
-  if (orderType === "delivery" && !deliveryAddress) {
-    showMessage("cartMessage", "Delivery address is required for delivery orders.", "error");
-    return;
-  }
-
-  let paymentDetails = {};
-
-  if (paymentMethod === "card") {
-    const cardHolderName = document.getElementById("cardHolderName").value.trim();
-    const cardNumber = document.getElementById("cardNumber").value.replace(/\s+/g, "");
-    const expiryMonth = document.getElementById("expiryMonth").value.trim();
-    const expiryYear = document.getElementById("expiryYear").value.trim();
-    const cvv = document.getElementById("cvv").value.trim();
-
-    if (!cardHolderName || !cardNumber || !expiryMonth || !expiryYear || !cvv) {
-      showMessage("cartMessage", "Please complete all card details.", "error");
-      return;
-    }
-
-    if (!/^\d{16}$/.test(cardNumber)) {
-      showMessage("cartMessage", "Card number must be 16 digits.", "error");
-      return;
-    }
-
-    if (!/^\d{2}$/.test(expiryMonth) || Number(expiryMonth) < 1 || Number(expiryMonth) > 12) {
-      showMessage("cartMessage", "Expiry month must be between 01 and 12.", "error");
-      return;
-    }
-
-    if (!/^\d{2,4}$/.test(expiryYear)) {
-      showMessage("cartMessage", "Expiry year is invalid.", "error");
-      return;
-    }
-
-    if (!/^\d{3,4}$/.test(cvv)) {
-      showMessage("cartMessage", "CVV must be 3 or 4 digits.", "error");
-      return;
-    }
-
-    paymentDetails = {
-      cardHolderName,
-      cardNumber,
-      expiryMonth,
-      expiryYear,
-      cvv
-    };
-  }
+  const orderType = document.getElementById("orderType")?.value || "";
+  const paymentMethod = document.getElementById("paymentMethod")?.value || "";
+  const deliveryAddress = document.getElementById("deliveryAddress")?.value.trim() || "";
 
   const payload = {
-    items: cartItems.map((item) => ({
-      menuItem: item._id,
-      quantity: Number(item.quantity || 1)
-    })),
     orderType,
     paymentMethod,
     deliveryAddress,
-    specialInstructions,
-    paymentDetails
+    items: cart.map((item) => ({
+      menuItem: item._id,
+      quantity: Number(item.quantity || 1)
+    }))
   };
-
-  placeOrderBtn.disabled = true;
-  placeOrderBtn.textContent = "Confirming Order...";
 
   try {
     await apiRequest("/orders", {
@@ -286,17 +107,10 @@ async function submitOrder(event) {
       body: JSON.stringify(payload)
     });
 
+    showMessage("checkoutMessage", "Order placed successfully.", "success");
     saveCart([]);
-    clearCardFields();
-    showMessage("cartMessage", "Order placed successfully.", "success");
-
-    setTimeout(() => {
-      window.location.href = buildFrontendUrl("order-history.html");
-    }, 700);
+    renderCartPage();
   } catch (error) {
-    showMessage("cartMessage", error.message || "Failed to place order.", "error");
-  } finally {
-    placeOrderBtn.disabled = false;
-    placeOrderBtn.textContent = "Confirm Order";
+    showMessage("checkoutMessage", error.message || "Failed to place order.", "error");
   }
 }

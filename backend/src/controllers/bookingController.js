@@ -25,7 +25,8 @@ export const createBooking = catchAsync(async (req, res) => {
     bookingDate,
     bookingTime,
     guests,
-    notes: notes || ""
+    notes: notes || "",
+    status: "Pending"
   });
 
   res.status(201).json({
@@ -97,5 +98,52 @@ export const deleteMyBooking = catchAsync(async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Booking deleted successfully."
+  });
+});
+
+export const getAllBookingsAdmin = catchAsync(async (req, res) => {
+  const { status = "", bookingDate = "" } = req.query;
+
+  const query = {};
+
+  if (status) {
+    query.status = status;
+  }
+
+  if (bookingDate) {
+    query.bookingDate = bookingDate;
+  }
+
+  const bookings = await Booking.find(query)
+    .populate("user", "fullName email")
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: bookings.length,
+    data: bookings
+  });
+});
+
+export const updateBookingStatusAdmin = catchAsync(async (req, res) => {
+  const { status } = req.body;
+
+  if (!status) {
+    throw new ApiError("Status is required.", 400);
+  }
+
+  const booking = await Booking.findById(req.params.id);
+
+  if (!booking) {
+    throw new ApiError("Booking not found.", 404);
+  }
+
+  booking.status = status;
+  await booking.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Booking status updated successfully.",
+    data: booking
   });
 });

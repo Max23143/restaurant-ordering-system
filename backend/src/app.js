@@ -7,25 +7,13 @@ import errorHandler from "./middleware/errorHandler.js";
 
 const app = express();
 
-const allowedOrigins = [
-  "http://127.0.0.1:5500",
-  "http://localhost:5500",
-  "http://172.20.10.5:5500"
-];
-
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(null, true);
-    },
+    origin: [
+      "http://127.0.0.1:5500",
+      "http://localhost:5500",
+      "http://172.20.10.5:5500"
+    ],
     credentials: true
   })
 );

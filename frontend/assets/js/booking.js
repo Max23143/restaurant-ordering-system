@@ -144,6 +144,7 @@ async function loadMyBookings() {
             <strong>Guests:</strong> ${booking.guests || 0}<br>
             <strong>Phone:</strong> ${booking.phone || "N/A"}<br>
             <strong>Email:</strong> ${booking.email || "N/A"}<br>
+            <strong>Status:</strong> ${booking.status || "Pending"}<br>
             <strong>Notes:</strong> ${booking.notes || "None"}
           </p>
 

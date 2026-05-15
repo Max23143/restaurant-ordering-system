@@ -2,24 +2,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadMenuItems();
 });
 
-function normalizeMenuItem(item = {}) {
-  return {
-    _id: item._id || item.id || "",
-    name: item.name || "Unnamed Item",
-    description: item.description || "No description available.",
-    category: item.category || "General",
-    price: Number(item.price || 0),
-    image:
-      item.image ||
-      item.imageUrl ||
-      "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80",
-    isAvailable: item.isAvailable !== false,
-    ratingAverage: Number(item.ratingAverage || 0),
-    ratingCount: Number(item.ratingCount || 0),
-    tags: Array.isArray(item.tags) ? item.tags : []
-  };
-}
-
 async function loadMenuItems() {
   const menuContainer = document.getElementById("menuContainer");
   const categoryFilter = document.getElementById("categoryFilter");
@@ -86,6 +68,7 @@ async function loadMenuItems() {
 
     applyFilters();
   } catch (error) {
+    console.error("Menu loading error:", error);
     menuContainer.innerHTML = `
       <div class="empty-state">
         Failed to load menu items. ${error.message}
@@ -101,7 +84,9 @@ function populateCategoryFilter(items, categoryFilter) {
 
   categoryFilter.innerHTML = `
     <option value="all">All Categories</option>
-    ${categories.map((category) => `<option value="${category.toLowerCase()}">${category}</option>`).join("")}
+    ${categories
+      .map((category) => `<option value="${category.toLowerCase()}">${category}</option>`)
+      .join("")}
   `;
 }
 

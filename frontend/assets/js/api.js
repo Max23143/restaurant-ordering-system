@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://172.20.10.5:5000/api";
+const API_BASE_URL = "http://127.0.0.1:5000/api";
 
 function getToken() {
   return localStorage.getItem("token") || "";
@@ -6,7 +6,6 @@ function getToken() {
 
 function getCurrentUser() {
   const rawUser = localStorage.getItem("user");
-
   if (!rawUser) return null;
 
   try {
@@ -35,18 +34,86 @@ function clearSession() {
 function buildFrontendUrl(fileName) {
   const currentPath = window.location.pathname;
   const frontendRoot = "/restaurant-ordering-system/frontend/";
+  const simpleFrontendRoot = "/frontend/";
 
   if (currentPath.includes(frontendRoot)) {
     const base = currentPath.substring(0, currentPath.indexOf(frontendRoot) + frontendRoot.length);
     return `${base}${fileName}`;
   }
 
-  if (currentPath.includes("/frontend/")) {
-    const base = currentPath.substring(0, currentPath.indexOf("/frontend/") + "/frontend/".length);
+  if (currentPath.includes(simpleFrontendRoot)) {
+    const base = currentPath.substring(0, currentPath.indexOf(simpleFrontendRoot) + simpleFrontendRoot.length);
     return `${base}${fileName}`;
   }
 
   return `/${fileName}`;
+}
+
+function normalizeMenuItem(item = {}) {
+  return {
+    _id: item._id || item.id || "",
+    name: item.name || "Unnamed Item",
+    description: item.description || "No description available.",
+    category: item.category || "General",
+    price: Number(item.price || 0),
+    image:
+      item.image ||
+      item.imageUrl ||
+      "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80",
+    isAvailable: item.isAvailable !== false,
+    ratingAverage: Number(item.ratingAverage || 0),
+    ratingCount: Number(item.ratingCount || 0),
+    tags: Array.isArray(item.tags) ? item.tags : [],
+    cuisine: item.cuisine || "",
+    isVegetarian: Boolean(item.isVegetarian),
+    isVegan: Boolean(item.isVegan)
+  };
+}
+
+function formatDateTime(value) {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Invalid date";
+
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function formatDate(value) {
+  if (!value) return "N/A";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Invalid date";
+
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+}
+
+async function tryGet(endpoint, fallback = []) {
+  try {
+    const response = await apiRequest(endpoint);
+    return {
+      success: true,
+      data: response.data || fallback,
+      raw: response
+    };
+  } catch (error) {
+    console.error(`GET failed for ${endpoint}:`, error);
+    return {
+      success: false,
+      data: fallback,
+      error
+    };
+  }
 }
 
 async function apiRequest(endpoint, options = {}) {
@@ -60,10 +127,16 @@ async function apiRequest(endpoint, options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers
+    });
+  } catch (networkError) {
+    throw new Error("Failed to fetch");
+  }
 
   let data = null;
   const contentType = response.headers.get("content-type") || "";
@@ -76,11 +149,22 @@ async function apiRequest(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(
+    const message =
       data?.message ||
       data?.error ||
-      `Request failed with status ${response.status}`
-    );
+      `Request failed with status ${response.status}`;
+
+    const lower = String(message).toLowerCase();
+    if (
+      lower.includes("invalid signature") ||
+      lower.includes("jwt malformed") ||
+      lower.includes("invalid token") ||
+      lower.includes("token expired")
+    ) {
+      clearSession();
+    }
+
+    throw new Error(message);
   }
 
   return data;
@@ -120,7 +204,6 @@ function renderStars(rating = 0) {
 
 function getCart() {
   const raw = localStorage.getItem("cart");
-
   if (!raw) return [];
 
   try {

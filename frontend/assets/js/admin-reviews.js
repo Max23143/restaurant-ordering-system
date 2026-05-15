@@ -1,40 +1,29 @@
 document.addEventListener("DOMContentLoaded", () => {
-  if (!protectAdminReviewsPage()) return;
-
-  document.getElementById("refreshReviewsBtn").addEventListener("click", loadAdminReviews);
-  document.getElementById("reviewApprovalFilter").addEventListener("change", loadAdminReviews);
-
   loadAdminReviews();
+
+  const refreshBtn = document.getElementById("refreshReviewsBtn");
+  if (refreshBtn) refreshBtn.addEventListener("click", loadAdminReviews);
 });
 
-function protectAdminReviewsPage() {
-  const currentUser = getCurrentUser();
-
-  if (!currentUser || !getToken()) {
-    window.location.href = buildFrontendUrl("login.html");
-    return false;
-  }
-
-  if (getUserRole() !== "admin") {
-    window.location.href = buildFrontendUrl("index.html");
-    return false;
-  }
-
-  return true;
-}
-
 async function loadAdminReviews() {
-  const mount = document.getElementById("adminReviewsList");
+  const mount = document.getElementById("adminReviewsContainer") || document.getElementById("reviewsContainer");
+  const filter = document.getElementById("reviewStatusFilter");
+
   if (!mount) return;
 
-  const approved = document.getElementById("reviewApprovalFilter").value;
-  const endpoint = approved === ""
-    ? "/reviews/admin/all"
-    : `/reviews/admin/all?approved=${approved}`;
-
   try {
-    const response = await apiRequest(endpoint);
-    const reviews = response.data || [];
+    const response = await apiRequest("/reviews/admin/all");
+    let reviews = response.data || [];
+
+    if (filter?.value) {
+      const selected = filter.value.toLowerCase();
+      reviews = reviews.filter((review) => {
+        const approved = Boolean(review.isApproved);
+        if (selected === "approved") return approved;
+        if (selected === "pending") return !approved;
+        return true;
+      });
+    }
 
     if (!reviews.length) {
       mount.innerHTML = `<div class="empty-state">No reviews found.</div>`;
@@ -42,41 +31,19 @@ async function loadAdminReviews() {
     }
 
     mount.innerHTML = reviews.map((review) => `
-      <article class="card review-card">
-        <div class="meta-row">
-          <strong>${review.user?.fullName || "Customer"}</strong>
-          <span class="badge">${review.menuItem?.name || "Menu Item"}</span>
-        </div>
-
-        <div class="rating-row">
-          <span class="stars">${renderStars(review.rating || 0)}</span>
-          <span class="small">${review.isApproved ? "Approved" : "Not Approved"}</span>
-        </div>
-
-        <p class="card-text">${review.comment || "No comment provided."}</p>
-
-        <div class="price-row">
-          <span class="small">Posted on ${formatDate(review.createdAt)}</span>
-          <button class="btn btn-secondary" onclick="toggleReviewApproval('${review._id}')">
-            ${review.isApproved ? "Unapprove" : "Approve"}
-          </button>
+      <article class="card" style="margin-bottom: 1rem;">
+        <div class="card-body">
+          <h3 class="card-title">${review.user?.fullName || "User Review"}</h3>
+          <p class="card-text">
+            <strong>Date:</strong> ${formatDate(review.createdAt)}<br>
+            <strong>Rating:</strong> ${review.rating || 0}/5<br>
+            <strong>Approved:</strong> ${review.isApproved ? "Yes" : "No"}<br>
+            <strong>Comment:</strong> ${review.comment || "No comment"}
+          </p>
         </div>
       </article>
     `).join("");
   } catch (error) {
     mount.innerHTML = `<div class="empty-state">Failed to load reviews. ${error.message}</div>`;
-  }
-}
-
-async function toggleReviewApproval(reviewId) {
-  try {
-    await apiRequest(`/reviews/admin/${reviewId}/approval`, {
-      method: "PUT"
-    });
-
-    showMessage("adminReviewMessage", "Review approval updated successfully.", "success");
-    loadAdminReviews();
-  } catch (error) {
-    showMessage("adminReviewMessage", error.message || "Failed to update review approval.", "error");
   }
 }
