@@ -21,7 +21,7 @@ function renderCartPage() {
 
   cartItemsMount.innerHTML = cart.map((item) => `
     <article class="card" style="margin-bottom:1rem;">
-      <div class="card-body" style="display:grid;grid-template-columns:140px 1fr;gap:1rem;align-items:start;">
+      <div class="card-body" style="display:grid;grid-template-columns:140px 1fr;gap:1rem;">
         <img src="${item.image}" alt="${item.name}" style="width:140px;height:140px;object-fit:cover;border-radius:16px;">
         <div>
           <h3 class="card-title">${item.name}</h3>
@@ -29,13 +29,7 @@ function renderCartPage() {
           <strong>${formatCurrency(item.price)}</strong>
 
           <div style="margin-top:1rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
-            <input
-              type="number"
-              min="1"
-              value="${item.quantity}"
-              onchange="changeCartQuantity('${item._id}', this.value)"
-              style="max-width:140px;"
-            >
+            <input type="number" min="1" value="${item.quantity}" onchange="changeCartQuantity('${item._id}', this.value)" style="max-width:140px;">
             <button class="btn btn-danger" onclick="removeCartItem('${item._id}')">Remove</button>
           </div>
         </div>
@@ -81,20 +75,15 @@ async function submitOrder(event) {
   }
 
   const cart = getCart();
-
   if (!cart.length) {
     showMessage("checkoutMessage", "Your cart is empty.", "error");
     return;
   }
 
-  const orderType = document.getElementById("orderType")?.value || "";
-  const paymentMethod = document.getElementById("paymentMethod")?.value || "";
-  const deliveryAddress = document.getElementById("deliveryAddress")?.value.trim() || "";
-
   const payload = {
-    orderType,
-    paymentMethod,
-    deliveryAddress,
+    orderType: document.getElementById("orderType")?.value || "",
+    paymentMethod: document.getElementById("paymentMethod")?.value || "",
+    deliveryAddress: document.getElementById("deliveryAddress")?.value.trim() || "",
     items: cart.map((item) => ({
       menuItem: item._id,
       quantity: Number(item.quantity || 1)

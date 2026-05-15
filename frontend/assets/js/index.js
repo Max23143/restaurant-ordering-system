@@ -28,7 +28,6 @@ async function loadFeaturedItems() {
 
     mount.innerHTML = items.map((item) => renderHomeMenuCard(item)).join("");
   } catch (error) {
-    console.error("Featured items error:", error);
     mount.innerHTML = `<div class="empty-state">Failed to load featured dishes. ${error.message}</div>`;
   }
 }
@@ -54,7 +53,6 @@ async function loadRecommendedItems() {
 
     mount.innerHTML = items.map((item) => renderHomeMenuCard(item, true)).join("");
   } catch (error) {
-    console.error("Recommended items error:", error);
     mount.innerHTML = `<div class="empty-state">Failed to load recommendations. ${error.message}</div>`;
   }
 }
@@ -62,7 +60,7 @@ async function loadRecommendedItems() {
 function renderHomeMenuCard(item, recommended = false) {
   return `
     <article class="card">
-      <img src="${item.image}" alt="${item.name}" style="height: 220px; width: 100%; object-fit: cover;">
+      <img src="${item.image}" alt="${item.name}" style="height:220px;width:100%;object-fit:cover;">
       <div class="card-body">
         <div class="meta-row">
           <span class="badge">${item.category}</span>
@@ -95,17 +93,6 @@ async function addHomeItemToCart(id) {
   try {
     const response = await apiRequest(`/menu/${id}`);
     const item = normalizeMenuItem(response.data || {});
-
-    if (!item._id) {
-      alert("Item not found.");
-      return;
-    }
-
-    if (!item.isAvailable) {
-      alert("This item is currently unavailable.");
-      return;
-    }
-
     addToCart(item, 1);
     alert(`${item.name} added to cart.`);
   } catch (error) {
@@ -136,7 +123,6 @@ async function setupRecommendationSearch() {
 
     try {
       input.value = query;
-
       const response = await fetchPreferenceRecommendations(query);
 
       metaMount.classList.remove("hide");
@@ -154,7 +140,6 @@ async function setupRecommendationSearch() {
         resultMount.innerHTML = response.items.map((item) => renderHomeMenuCard(item, true)).join("");
       }
     } catch (error) {
-      console.error("Recommendation search error:", error);
       metaMount.classList.add("hide");
       resultMount.innerHTML = `<div class="empty-state">Failed to load recommendations. ${error.message}</div>`;
     } finally {
@@ -174,8 +159,7 @@ async function setupRecommendationSearch() {
 
   quickButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const query = btn.dataset.query || "";
-      handleSearch(query);
+      handleSearch(btn.dataset.query || "");
     });
   });
 }

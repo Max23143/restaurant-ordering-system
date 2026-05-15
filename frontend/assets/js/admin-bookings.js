@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function loadAdminBookings() {
-  const mount = document.getElementById("adminBookingsContainer") || document.getElementById("bookingsContainer");
+  const mount = document.getElementById("adminBookingsTable");
   const statusFilter = document.getElementById("bookingStatusFilter");
   const dateFilter = document.getElementById("bookingDateFilter");
 
@@ -31,7 +31,7 @@ async function loadAdminBookings() {
     }
 
     mount.innerHTML = bookings.map((booking) => `
-      <article class="card" style="margin-bottom: 1rem;">
+      <article class="card" style="margin-bottom:1rem;">
         <div class="card-body">
           <h3 class="card-title">${booking.fullName}</h3>
           <p class="card-text">
@@ -41,7 +41,6 @@ async function loadAdminBookings() {
             <strong>Email:</strong> ${booking.email || "N/A"}<br>
             <strong>Status:</strong> ${booking.status || "Pending"}
           </p>
-
           <div class="inline-actions">
             <select onchange="updateAdminBookingStatus('${booking._id}', this.value)">
               <option value="">Change Status</option>
@@ -67,7 +66,6 @@ async function updateAdminBookingStatus(id, status) {
       method: "PUT",
       body: JSON.stringify({ status })
     });
-
     loadAdminBookings();
   } catch (error) {
     alert(error.message || "Failed to update booking status.");

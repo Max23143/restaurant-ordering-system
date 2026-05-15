@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function loadAdminReviews() {
-  const mount = document.getElementById("adminReviewsContainer") || document.getElementById("reviewsContainer");
+  const mount = document.getElementById("adminReviewsTable");
   const filter = document.getElementById("reviewStatusFilter");
 
   if (!mount) return;
@@ -31,7 +31,7 @@ async function loadAdminReviews() {
     }
 
     mount.innerHTML = reviews.map((review) => `
-      <article class="card" style="margin-bottom: 1rem;">
+      <article class="card" style="margin-bottom:1rem;">
         <div class="card-body">
           <h3 class="card-title">${review.user?.fullName || "User Review"}</h3>
           <p class="card-text">

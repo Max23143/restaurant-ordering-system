@@ -1,23 +1,24 @@
 document.addEventListener("DOMContentLoaded", () => {
   setupAdminMenuForm();
   loadAdminMenuItems();
+
+  const resetBtn = document.getElementById("resetMenuFormBtn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", resetAdminMenuForm);
+  }
 });
 
 let editingMenuItemId = null;
 
 function setupAdminMenuForm() {
-  const form = document.getElementById("adminMenuForm") || document.getElementById("menuForm");
+  const form = document.getElementById("menuForm");
   if (!form) return;
 
   form.addEventListener("submit", submitAdminMenuForm);
 }
 
 async function loadAdminMenuItems() {
-  const mount =
-    document.getElementById("adminMenuItemsContainer") ||
-    document.getElementById("currentMenuItemsContainer") ||
-    document.getElementById("menuItemsContainer");
-
+  const mount = document.getElementById("adminMenuList");
   if (!mount) return;
 
   try {
@@ -30,7 +31,7 @@ async function loadAdminMenuItems() {
     }
 
     mount.innerHTML = items.map((item) => `
-      <article class="card" style="margin-bottom: 1rem;">
+      <article class="card" style="margin-bottom:1rem;">
         <div class="card-body">
           <img src="${item.image}" alt="${item.name}" style="width:100%;height:180px;object-fit:cover;border-radius:16px;margin-bottom:1rem;">
           <h3 class="card-title">${item.name}</h3>
@@ -41,6 +42,7 @@ async function loadAdminMenuItems() {
             <strong>Description:</strong> ${item.description}<br>
             <strong>Tags:</strong> ${(item.tags || []).join(", ") || "None"}
           </p>
+
           <div class="inline-actions">
             <button class="btn btn-secondary" onclick="editAdminMenuItem('${item._id}')">Edit</button>
             <button class="btn btn-danger" onclick="deleteAdminMenuItem('${item._id}')">Delete</button>
@@ -55,28 +57,19 @@ async function loadAdminMenuItems() {
 
 async function submitAdminMenuForm(event) {
   event.preventDefault();
-
-  const messageId = "adminMenuMessage";
-  hideMessage(messageId);
-
-  const name = document.getElementById("dishName")?.value.trim() || document.getElementById("name")?.value.trim() || "";
-  const category = document.getElementById("category")?.value || "";
-  const price = Number(document.getElementById("price")?.value || 0);
-  const image = document.getElementById("imageUrl")?.value.trim() || document.getElementById("image")?.value.trim() || "";
-  const description = document.getElementById("description")?.value.trim() || "";
-  const tagsRaw = document.getElementById("tags")?.value.trim() || "";
-  const isAvailable = document.getElementById("isAvailable")?.checked ?? true;
+  hideMessage("adminMenuMessage");
 
   const payload = {
-    name,
-    category,
-    price,
-    image,
-    description,
-    tags: tagsRaw
-      ? tagsRaw.split(",").map((tag) => tag.trim()).filter(Boolean)
-      : [],
-    isAvailable
+    name: document.getElementById("menuName")?.value.trim() || "",
+    category: document.getElementById("menuCategory")?.value || "",
+    price: Number(document.getElementById("menuPrice")?.value || 0),
+    image: document.getElementById("menuImage")?.value.trim() || "",
+    description: document.getElementById("menuDescription")?.value.trim() || "",
+    tags: (document.getElementById("menuTags")?.value || "")
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+    isAvailable: document.getElementById("menuAvailable")?.checked ?? true
   };
 
   try {
@@ -85,19 +78,19 @@ async function submitAdminMenuForm(event) {
         method: "PUT",
         body: JSON.stringify(payload)
       });
-      showMessage(messageId, "Menu item updated successfully.", "success");
+      showMessage("adminMenuMessage", "Menu item updated successfully.", "success");
     } else {
       await apiRequest("/menu", {
         method: "POST",
         body: JSON.stringify(payload)
       });
-      showMessage(messageId, "Menu item added successfully.", "success");
+      showMessage("adminMenuMessage", "Menu item added successfully.", "success");
     }
 
     resetAdminMenuForm();
     loadAdminMenuItems();
   } catch (error) {
-    showMessage(messageId, error.message || "Failed to save menu item.", "error");
+    showMessage("adminMenuMessage", error.message || "Failed to save menu item.", "error");
   }
 }
 
@@ -107,27 +100,21 @@ async function editAdminMenuItem(id) {
     const item = normalizeMenuItem(response.data || {});
     editingMenuItemId = item._id;
 
-    const dishName = document.getElementById("dishName") || document.getElementById("name");
-    const category = document.getElementById("category");
-    const price = document.getElementById("price");
-    const imageUrl = document.getElementById("imageUrl") || document.getElementById("image");
-    const description = document.getElementById("description");
-    const tags = document.getElementById("tags");
-    const isAvailable = document.getElementById("isAvailable");
-    const submitBtn = document.getElementById("adminMenuSubmitBtn") || document.getElementById("menuSubmitBtn");
+    document.getElementById("menuItemId").value = item._id;
+    document.getElementById("menuName").value = item.name;
+    document.getElementById("menuCategory").value = item.category;
+    document.getElementById("menuPrice").value = item.price;
+    document.getElementById("menuImage").value = item.image;
+    document.getElementById("menuDescription").value = item.description;
+    document.getElementById("menuTags").value = (item.tags || []).join(", ");
+    document.getElementById("menuAvailable").checked = item.isAvailable;
 
-    if (dishName) dishName.value = item.name;
-    if (category) category.value = item.category;
-    if (price) price.value = item.price;
-    if (imageUrl) imageUrl.value = item.image;
-    if (description) description.value = item.description;
-    if (tags) tags.value = (item.tags || []).join(", ");
-    if (isAvailable) isAvailable.checked = item.isAvailable;
-    if (submitBtn) submitBtn.textContent = "Update Menu Item";
+    const submitBtn = document.getElementById("menuSubmitBtn");
+    if (submitBtn) submitBtn.textContent = "Update Item";
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (error) {
-    alert(error.message || "Failed to load item for editing.");
+    alert(error.message || "Failed to load menu item.");
   }
 }
 
@@ -137,16 +124,21 @@ async function deleteAdminMenuItem(id) {
   try {
     await apiRequest(`/menu/${id}`, { method: "DELETE" });
     loadAdminMenuItems();
+    showMessage("adminMenuMessage", "Menu item deleted successfully.", "success");
   } catch (error) {
-    alert(error.message || "Failed to delete menu item.");
+    showMessage("adminMenuMessage", error.message || "Failed to delete menu item.", "error");
   }
 }
 
 function resetAdminMenuForm() {
-  const form = document.getElementById("adminMenuForm") || document.getElementById("menuForm");
-  const submitBtn = document.getElementById("adminMenuSubmitBtn") || document.getElementById("menuSubmitBtn");
-
+  const form = document.getElementById("menuForm");
   if (form) form.reset();
+
   editingMenuItemId = null;
-  if (submitBtn) submitBtn.textContent = "Save Menu Item";
+
+  const hiddenId = document.getElementById("menuItemId");
+  if (hiddenId) hiddenId.value = "";
+
+  const submitBtn = document.getElementById("menuSubmitBtn");
+  if (submitBtn) submitBtn.textContent = "Save Item";
 }
