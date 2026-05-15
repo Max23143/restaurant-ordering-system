@@ -1,4 +1,8 @@
-const API_BASE_URL = "http://127.0.0.1:5000/api";
+const API_BASE_URL = (
+  window.RESTAURANT_API_BASE_URL ||
+  localStorage.getItem("apiBaseUrl") ||
+  "http://127.0.0.1:5000/api"
+).replace(/\/$/, "");
 
 function getToken() {
   return localStorage.getItem("token") || "";

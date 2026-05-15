@@ -1,16 +1,19 @@
 document.addEventListener("DOMContentLoaded", () => {
   renderCartPage();
   setupCheckoutForm();
+  setupOrderTypeToggle();
 });
 
 function renderCartPage() {
-  const cartItemsMount = document.getElementById("cartItemsContainer");
+  const cartItemsMount = document.getElementById("cartItemsContainer") || document.getElementById("cartList");
   const totalItemsElement = document.getElementById("checkoutTotalItems");
-  const totalAmountElement = document.getElementById("checkoutTotalAmount");
+  const totalAmountElement = document.getElementById("checkoutTotalAmount") || document.getElementById("cartSummary");
 
   if (!cartItemsMount) return;
 
   const cart = getCart();
+  const totalItems = cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const totalAmount = getCartTotal();
 
   if (!cart.length) {
     cartItemsMount.innerHTML = `<div class="empty-state">Your cart is empty.</div>`;
@@ -37,15 +40,8 @@ function renderCartPage() {
     </article>
   `).join("");
 
-  if (totalItemsElement) {
-    totalItemsElement.textContent = String(
-      cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
-    );
-  }
-
-  if (totalAmountElement) {
-    totalAmountElement.textContent = formatCurrency(getCartTotal());
-  }
+  if (totalItemsElement) totalItemsElement.textContent = String(totalItems);
+  if (totalAmountElement) totalAmountElement.textContent = formatCurrency(totalAmount);
 }
 
 function changeCartQuantity(id, quantity) {
@@ -65,6 +61,23 @@ function setupCheckoutForm() {
   form.addEventListener("submit", submitOrder);
 }
 
+function setupOrderTypeToggle() {
+  const orderType = document.getElementById("orderType");
+  const deliveryAddressGroup = document.getElementById("deliveryAddressGroup");
+  const deliveryAddress = document.getElementById("deliveryAddress");
+
+  if (!orderType || !deliveryAddressGroup) return;
+
+  const toggleDeliveryAddress = () => {
+    const isDelivery = orderType.value === "delivery";
+    deliveryAddressGroup.classList.toggle("hide", !isDelivery);
+    if (deliveryAddress) deliveryAddress.required = isDelivery;
+  };
+
+  orderType.addEventListener("change", toggleDeliveryAddress);
+  toggleDeliveryAddress();
+}
+
 async function submitOrder(event) {
   event.preventDefault();
   hideMessage("checkoutMessage");
@@ -80,15 +93,30 @@ async function submitOrder(event) {
     return;
   }
 
+  const submitBtn = document.getElementById("checkoutBtn");
+  const orderType = document.getElementById("orderType")?.value || "delivery";
+  const deliveryAddress = document.getElementById("deliveryAddress")?.value.trim() || "";
+
+  if (orderType === "delivery" && !deliveryAddress) {
+    showMessage("checkoutMessage", "Delivery address is required for delivery orders.", "error");
+    return;
+  }
+
   const payload = {
-    orderType: document.getElementById("orderType")?.value || "",
-    paymentMethod: document.getElementById("paymentMethod")?.value || "",
-    deliveryAddress: document.getElementById("deliveryAddress")?.value.trim() || "",
+    orderType,
+    paymentMethod: document.getElementById("paymentMethod")?.value || "cash",
+    deliveryAddress,
+    specialInstructions: document.getElementById("specialInstructions")?.value.trim() || "",
     items: cart.map((item) => ({
       menuItem: item._id,
       quantity: Number(item.quantity || 1)
     }))
   };
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Placing Order...";
+  }
 
   try {
     await apiRequest("/orders", {
@@ -99,7 +127,14 @@ async function submitOrder(event) {
     showMessage("checkoutMessage", "Order placed successfully.", "success");
     saveCart([]);
     renderCartPage();
+    event.target.reset();
+    setupOrderTypeToggle();
   } catch (error) {
     showMessage("checkoutMessage", error.message || "Failed to place order.", "error");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Place Order";
+    }
   }
 }

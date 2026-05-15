@@ -38,7 +38,7 @@ function formatOrderItems(items = []) {
 }
 
 async function loadOrderHistory() {
-  const mount = document.getElementById("orderHistoryContainer");
+  const mount = document.getElementById("orderHistoryTable") || document.getElementById("orderHistoryContainer");
   if (!mount) return;
 
   if (!getToken()) {

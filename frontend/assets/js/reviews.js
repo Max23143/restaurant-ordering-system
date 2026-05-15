@@ -1,9 +1,88 @@
 document.addEventListener("DOMContentLoaded", () => {
+  setupReviewForm();
+  loadReviewMenuItems();
   loadMyReviews();
 });
 
+function setupReviewForm() {
+  const form = document.getElementById("reviewForm");
+  if (!form) return;
+
+  form.addEventListener("submit", submitReview);
+}
+
+async function loadReviewMenuItems() {
+  const select = document.getElementById("reviewMenuItem");
+  if (!select) return;
+
+  select.innerHTML = `<option value="">Loading menu items...</option>`;
+
+  try {
+    const response = await apiRequest("/menu");
+    const items = (response.data || []).map(normalizeMenuItem).filter((item) => item.isAvailable);
+
+    if (!items.length) {
+      select.innerHTML = `<option value="">No menu items available</option>`;
+      return;
+    }
+
+    select.innerHTML = `
+      <option value="">Select a menu item</option>
+      ${items.map((item) => `<option value="${item._id}">${item.name}</option>`).join("")}
+    `;
+  } catch (error) {
+    select.innerHTML = `<option value="">Unable to load menu items</option>`;
+    showMessage("reviewMessage", error.message || "Unable to load menu items.", "error");
+  }
+}
+
+async function submitReview(event) {
+  event.preventDefault();
+  hideMessage("reviewMessage");
+
+  if (!getToken()) {
+    showMessage("reviewMessage", "Please log in before submitting a review.", "error");
+    return;
+  }
+
+  const button = document.getElementById("reviewBtn");
+  const payload = {
+    menuItem: document.getElementById("reviewMenuItem")?.value || "",
+    rating: Number(document.getElementById("rating")?.value || 0),
+    comment: document.getElementById("comment")?.value.trim() || ""
+  };
+
+  if (!payload.menuItem || !payload.rating) {
+    showMessage("reviewMessage", "Please choose a dish and rating.", "error");
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Submitting Review...";
+  }
+
+  try {
+    await apiRequest("/reviews", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+
+    event.target.reset();
+    showMessage("reviewMessage", "Review submitted successfully. It will appear publicly after admin approval.", "success");
+    loadMyReviews();
+  } catch (error) {
+    showMessage("reviewMessage", error.message || "Unable to submit review.", "error");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Submit Review";
+    }
+  }
+}
+
 async function loadMyReviews() {
-  const mount = document.getElementById("myReviewsContainer") || document.getElementById("reviewsContainer");
+  const mount = document.getElementById("myReviews") || document.getElementById("myReviewsContainer") || document.getElementById("reviewsContainer");
   if (!mount) return;
 
   if (!getToken()) {

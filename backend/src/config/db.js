@@ -4,16 +4,13 @@ const connectDB = async () => {
   try {
     const uri = process.env.MONGODB_URI || "";
 
-    console.log("Working directory:", process.cwd());
-    console.log("URI loaded:", uri ? "yes" : "no");
-    console.log(
-      "URI type:",
-      uri.startsWith("mongodb+srv://")
-        ? "mongodb+srv"
-        : uri.startsWith("mongodb://")
-        ? "mongodb"
-        : "unknown"
-    );
+    if (!uri) {
+      throw new Error("MONGODB_URI is required. Add it to backend/.env before starting the API.");
+    }
+
+    if (!uri.startsWith("mongodb://") && !uri.startsWith("mongodb+srv://")) {
+      throw new Error("MONGODB_URI must start with mongodb:// or mongodb+srv://.");
+    }
 
     const conn = await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 10000,
@@ -23,7 +20,7 @@ const connectDB = async () => {
     console.log(`MongoDB connected: ${conn.connection.host}`);
   } catch (error) {
     console.error("MongoDB connection failed:", error.message);
-    process.exit(1);
+    throw error;
   }
 };
 

@@ -26,7 +26,7 @@ export const createBooking = catchAsync(async (req, res) => {
     bookingTime,
     guests,
     notes: notes || "",
-    status: "Pending"
+    status: "pending"
   });
 
   res.status(201).json({
@@ -111,7 +111,15 @@ export const getAllBookingsAdmin = catchAsync(async (req, res) => {
   }
 
   if (bookingDate) {
-    query.bookingDate = bookingDate;
+    const start = new Date(bookingDate);
+    const end = new Date(bookingDate);
+
+    if (Number.isNaN(start.getTime())) {
+      throw new ApiError("Booking date filter is invalid.", 400);
+    }
+
+    end.setDate(end.getDate() + 1);
+    query.bookingDate = { $gte: start, $lt: end };
   }
 
   const bookings = await Booking.find(query)
@@ -128,8 +136,11 @@ export const getAllBookingsAdmin = catchAsync(async (req, res) => {
 export const updateBookingStatusAdmin = catchAsync(async (req, res) => {
   const { status } = req.body;
 
-  if (!status) {
-    throw new ApiError("Status is required.", 400);
+  const normalizedStatus = String(status || "").toLowerCase();
+  const validStatuses = ["pending", "confirmed", "cancelled", "completed"];
+
+  if (!normalizedStatus || !validStatuses.includes(normalizedStatus)) {
+    throw new ApiError("A valid booking status is required.", 400);
   }
 
   const booking = await Booking.findById(req.params.id);
@@ -138,7 +149,7 @@ export const updateBookingStatusAdmin = catchAsync(async (req, res) => {
     throw new ApiError("Booking not found.", 404);
   }
 
-  booking.status = status;
+  booking.status = normalizedStatus;
   await booking.save();
 
   res.status(200).json({

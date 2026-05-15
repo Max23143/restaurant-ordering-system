@@ -40,10 +40,35 @@ async function loadAdminOrders() {
             <strong>Total:</strong> ${formatCurrency(order.totalAmount || 0)}<br>
             <strong>Status:</strong> ${order.status || "N/A"}
           </p>
+          <div class="inline-actions">
+            <select onchange="updateAdminOrderStatus('${order._id}', this.value)">
+              <option value="">Change Status</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="preparing">Preparing</option>
+              <option value="ready">Ready</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
         </div>
       </article>
     `).join("");
   } catch (error) {
     mount.innerHTML = `<div class="empty-state">Failed to load orders. ${error.message}</div>`;
+  }
+}
+
+async function updateAdminOrderStatus(id, status) {
+  if (!status) return;
+
+  try {
+    await apiRequest(`/orders/admin/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status })
+    });
+    loadAdminOrders();
+  } catch (error) {
+    alert(error.message || "Failed to update order status.");
   }
 }

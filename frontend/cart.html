@@ -16,8 +16,53 @@
     </div>
 
     <section class="section grid grid-2">
-      <div id="cartList" class="list"></div>
-      <div id="cartSummary"></div>
+      <div>
+        <h2 class="section-title">Selected Items</h2>
+        <div id="cartItemsContainer" class="list"></div>
+      </div>
+
+      <aside class="form-card">
+        <h2 class="section-title">Checkout</h2>
+        <div id="checkoutMessage" class="message hide"></div>
+
+        <div class="meta-row" style="margin-bottom: 1rem;">
+          <span class="badge">Items: <strong id="checkoutTotalItems">0</strong></span>
+          <span class="badge">Total: <strong id="checkoutTotalAmount">£0.00</strong></span>
+        </div>
+
+        <form id="checkoutForm" class="form-grid" novalidate>
+          <div class="form-group full">
+            <label for="orderType">Order Type</label>
+            <select id="orderType" required>
+              <option value="delivery">Delivery</option>
+              <option value="pickup">Pickup</option>
+              <option value="dine-in">Dine-in</option>
+            </select>
+          </div>
+
+          <div class="form-group full" id="deliveryAddressGroup">
+            <label for="deliveryAddress">Delivery Address</label>
+            <textarea id="deliveryAddress" rows="3" placeholder="Enter delivery address"></textarea>
+          </div>
+
+          <div class="form-group full">
+            <label for="paymentMethod">Payment Method</label>
+            <select id="paymentMethod" required>
+              <option value="cash">Cash</option>
+              <option value="online">Online</option>
+            </select>
+          </div>
+
+          <div class="form-group full">
+            <label for="specialInstructions">Special Instructions</label>
+            <textarea id="specialInstructions" rows="3" placeholder="Optional notes for the kitchen"></textarea>
+          </div>
+
+          <div class="form-group full">
+            <button class="btn btn-primary" id="checkoutBtn" type="submit">Place Order</button>
+          </div>
+        </form>
+      </aside>
     </section>
   </main>
 

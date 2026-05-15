@@ -35,19 +35,19 @@ async function loadAdminBookings() {
         <div class="card-body">
           <h3 class="card-title">${booking.fullName}</h3>
           <p class="card-text">
-            <strong>Date:</strong> ${booking.bookingDate || "N/A"}<br>
+            <strong>Date:</strong> ${formatDate(booking.bookingDate)}<br>
             <strong>Time:</strong> ${booking.bookingTime || "N/A"}<br>
             <strong>Guests:</strong> ${booking.guests || 0}<br>
             <strong>Email:</strong> ${booking.email || "N/A"}<br>
-            <strong>Status:</strong> ${booking.status || "Pending"}
+            <strong>Status:</strong> ${booking.status || "pending"}
           </p>
           <div class="inline-actions">
             <select onchange="updateAdminBookingStatus('${booking._id}', this.value)">
               <option value="">Change Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
             </select>
           </div>
         </div>
