@@ -46,6 +46,10 @@ function buildFullPhoneNumber(countryCode, localPhone) {
   return `${cleanCountryCode}${cleanLocalPhone}`;
 }
 
+/*
+  Password strength checker.
+  This gives clear suggestions while the user types.
+*/
 function evaluatePassword(password) {
   const rules = {
     length: password.length >= 8,
@@ -99,12 +103,16 @@ function setupPasswordStrengthChecker(inputId, textId, fillId, listId) {
       item.classList.toggle("passed", passed);
       item.classList.toggle("failed", !passed);
     });
+
+    if (!password) {
+      text.textContent = "Weak";
+    }
   });
 }
 
 function isPasswordStrongEnough(password) {
   const result = evaluatePassword(password);
-  return result.passedCount >= 4;
+  return result.passedCount === 5;
 }
 
 async function loginUser(event) {
@@ -180,7 +188,11 @@ async function registerUser(event) {
   }
 
   if (!isPasswordStrongEnough(password)) {
-    showMessage("authMessage", "Please use a stronger password.", "error");
+    showMessage(
+      "authMessage",
+      "Please use a strong password: at least 8 characters, uppercase, lowercase, number, and special character.",
+      "error"
+    );
     return;
   }
 
@@ -220,6 +232,11 @@ async function registerUser(event) {
   }
 }
 
+/*
+  Demo forgot-password flow:
+  The backend returns a reset link directly.
+  No email and no phone/SMS is used.
+*/
 async function sendForgotPasswordLink(event) {
   event.preventDefault();
   hideMessage("forgotPasswordMessage");
@@ -228,12 +245,12 @@ async function sendForgotPasswordLink(event) {
   const button = document.getElementById("forgotPasswordBtn");
 
   if (!email) {
-    showMessage("forgotPasswordMessage", "Email is required.", "error");
+    showMessage("forgotPasswordMessage", "Email is required to find your account.", "error");
     return;
   }
 
   button.disabled = true;
-  button.textContent = "Sending...";
+  button.textContent = "Generating...";
 
   try {
     const response = await apiRequest("/auth/forgot-password", {
@@ -241,25 +258,21 @@ async function sendForgotPasswordLink(event) {
       body: JSON.stringify({ email })
     });
 
-    if (response.resetUrl) {
-      showMessage(
-        "forgotPasswordMessage",
-        `Reset link generated: ${response.resetUrl}`,
-        "success"
-      );
-    } else {
-      showMessage(
-        "forgotPasswordMessage",
-        response.message || "Reset link sent successfully. Check your email.",
-        "success"
-      );
+    if (!response.resetUrl) {
+      throw new Error("Reset link was not returned by the server.");
     }
+
+    showMessage(
+      "forgotPasswordMessage",
+      `Reset link generated. Copy and open this link: ${response.resetUrl}`,
+      "success"
+    );
   } catch (error) {
     console.error("Forgot password failed:", error);
-    showMessage("forgotPasswordMessage", error.message || "Failed to send reset link.", "error");
+    showMessage("forgotPasswordMessage", error.message || "Failed to generate reset link.", "error");
   } finally {
     button.disabled = false;
-    button.textContent = "Send Reset Link";
+    button.textContent = "Generate Reset Link";
   }
 }
 
@@ -284,7 +297,11 @@ async function submitResetPassword(event) {
   }
 
   if (!isPasswordStrongEnough(password)) {
-    showMessage("resetPasswordMessage", "Please use a stronger password.", "error");
+    showMessage(
+      "resetPasswordMessage",
+      "Please use a strong password: at least 8 characters, uppercase, lowercase, number, and special character.",
+      "error"
+    );
     return;
   }
 

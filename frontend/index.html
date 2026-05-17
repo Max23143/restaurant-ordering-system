@@ -14,11 +14,12 @@
       <div class="hero-card">
         <h1>Smart Restaurant Ordering and Management System</h1>
         <p>
-          Browse the menu, place orders, reserve tables, leave reviews, and receive realistic personalized dish recommendations.
+          Browse the menu, place orders, reserve tables, leave reviews, check restaurant events, and discover food suggestions based on what you type.
         </p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="menu.html">Explore Menu</a>
           <a class="btn btn-secondary" href="booking.html">Book a Table</a>
+          <a class="btn btn-secondary" href="events.html">View Events & Offers</a>
         </div>
       </div>
 
@@ -35,39 +36,58 @@
   <section class="section">
     <div class="container">
       <div class="form-card">
-        <h2 class="section-title">Find Food by Preference</h2>
+        <h2 class="section-title">Find Food Suggestions</h2>
         <p class="page-subtitle">
-          Try phrases like spicy vegetarian dinner, sweet dessert, chicken curry, cheap lunch, or healthy meal.
+          Type what you want, for example spicy food, chicken curry, dessert, cheap lunch, vegetarian dinner, or healthy meal.
         </p>
 
         <div class="toolbar">
           <input
-            id="recommendationSearchInput"
+            id="suggestionSearchInput"
             type="text"
-            placeholder="Example: spicy vegetarian dinner"
+            placeholder="Start typing your food preference..."
+            autocomplete="off"
           >
           <button
-            id="recommendationSearchBtn"
+            id="suggestionSearchBtn"
             class="btn btn-primary"
             type="button"
           >
-            Find Recommendations
+            Show Suggestions
           </button>
         </div>
 
-        <div class="inline-actions recommendation-chip-row" style="margin-top: 1rem; flex-wrap: wrap;">
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="spicy">Spicy</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="sweet dessert">Sweet</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="chicken curry">Chicken</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="vegetarian">Vegetarian</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="dessert">Dessert</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="cheap lunch">Budget</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="dinner">Dinner</button>
-          <button class="btn btn-secondary recommendation-tag-btn" type="button" data-query="lunch">Lunch</button>
-        </div>
+        <div id="typedSuggestionText" class="recommendation-search-meta hide"></div>
+        <div id="foodSuggestionResults" class="recommendation-results-grid" style="margin-top: 1rem;"></div>
+      </div>
+    </div>
+  </section>
 
-        <div id="recommendationSearchMeta" class="recommendation-search-meta hide"></div>
-        <div id="searchRecommendationResults" class="recommendation-results-grid" style="margin-top: 1rem;"></div>
+  <section class="section">
+    <div class="container">
+      <div class="page-header">
+        <h2 class="section-title">Today’s Discounts & Offers</h2>
+        <p class="page-subtitle">Special offers available for customers today</p>
+      </div>
+
+      <div class="grid grid-3">
+        <article class="offer-card">
+          <span class="badge badge-success">20% OFF</span>
+          <h3>Student Meal Deal</h3>
+          <p>Get 20% off selected lunch meals from 12 PM to 3 PM.</p>
+        </article>
+
+        <article class="offer-card">
+          <span class="badge badge-success">Free Drink</span>
+          <h3>Family Dinner Offer</h3>
+          <p>Book a table for 4 or more guests and get complimentary soft drinks.</p>
+        </article>
+
+        <article class="offer-card">
+          <span class="badge badge-success">Weekend Offer</span>
+          <h3>Dessert Combo</h3>
+          <p>Order any main course and get dessert at half price on weekends.</p>
+        </article>
       </div>
     </div>
   </section>
@@ -79,16 +99,6 @@
         <p class="page-subtitle">Popular dishes from the live menu</p>
       </div>
       <div id="featuredItems" class="grid grid-4"></div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="page-header">
-        <h2 class="section-title">Recommended For You</h2>
-        <p class="page-subtitle">Recommendations powered by your backend recommendation engine</p>
-      </div>
-      <div id="recommendedItems" class="grid grid-4"></div>
     </div>
   </section>
 

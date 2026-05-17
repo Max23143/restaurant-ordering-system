@@ -3,11 +3,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initializeHomePage() {
-  await Promise.all([
-    loadFeaturedItems(),
-    loadRecommendedItems(),
-    setupRecommendationSearch()
-  ]);
+  await loadFeaturedItems();
+  setupFoodSuggestionSearch();
 }
 
 async function loadFeaturedItems() {
@@ -16,6 +13,7 @@ async function loadFeaturedItems() {
 
   try {
     const response = await apiRequest("/menu");
+
     const items = (response.data || [])
       .map(normalizeMenuItem)
       .filter((item) => item.isAvailable)
@@ -32,32 +30,7 @@ async function loadFeaturedItems() {
   }
 }
 
-async function loadRecommendedItems() {
-  const mount = document.getElementById("recommendedItems");
-  if (!mount) return;
-
-  try {
-    let items = [];
-
-    if (getToken()) {
-      const personalized = await fetchPersonalizedRecommendations();
-      items = personalized.items || [];
-    } else {
-      items = await fetchTopRatedRecommendations();
-    }
-
-    if (!items.length) {
-      mount.innerHTML = `<div class="empty-state">No recommendations available.</div>`;
-      return;
-    }
-
-    mount.innerHTML = items.map((item) => renderHomeMenuCard(item, true)).join("");
-  } catch (error) {
-    mount.innerHTML = `<div class="empty-state">Failed to load recommendations. ${error.message}</div>`;
-  }
-}
-
-function renderHomeMenuCard(item, recommended = false) {
+function renderHomeMenuCard(item) {
   return `
     <article class="card">
       <img src="${item.image}" alt="${item.name}" style="height:220px;width:100%;object-fit:cover;">
@@ -81,7 +54,7 @@ function renderHomeMenuCard(item, recommended = false) {
           <strong>${formatCurrency(item.price)}</strong>
           <div class="inline-actions">
             <a class="btn btn-secondary" href="${buildFrontendUrl(`dish-details.html?id=${item._id}`)}">View</a>
-            <button class="btn btn-primary" onclick="${recommended ? `addRecommendedItemToCart('${item._id}')` : `addHomeItemToCart('${item._id}')`}">Add</button>
+            <button class="btn btn-primary" onclick="addHomeItemToCart('${item._id}')">Add</button>
           </div>
         </div>
       </div>
@@ -93,6 +66,17 @@ async function addHomeItemToCart(id) {
   try {
     const response = await apiRequest(`/menu/${id}`);
     const item = normalizeMenuItem(response.data || {});
+
+    if (!item._id) {
+      alert("Item not found.");
+      return;
+    }
+
+    if (!item.isAvailable) {
+      alert("This item is currently unavailable.");
+      return;
+    }
+
     addToCart(item, 1);
     alert(`${item.name} added to cart.`);
   } catch (error) {
@@ -100,21 +84,38 @@ async function addHomeItemToCart(id) {
   }
 }
 
-async function setupRecommendationSearch() {
-  const input = document.getElementById("recommendationSearchInput");
-  const button = document.getElementById("recommendationSearchBtn");
-  const resultMount = document.getElementById("searchRecommendationResults");
-  const metaMount = document.getElementById("recommendationSearchMeta");
-  const quickButtons = document.querySelectorAll(".recommendation-tag-btn");
+function setupFoodSuggestionSearch() {
+  const input = document.getElementById("suggestionSearchInput");
+  const button = document.getElementById("suggestionSearchBtn");
+  const typedText = document.getElementById("typedSuggestionText");
+  const resultMount = document.getElementById("foodSuggestionResults");
 
-  if (!input || !button || !resultMount || !metaMount) return;
+  if (!input || !button || !typedText || !resultMount) return;
 
-  const handleSearch = async (queryText) => {
-    const query = String(queryText || input.value || "").trim();
+  let typingTimer = null;
+
+  /*
+    This function shows what the user typed and then asks the backend
+    for matching food suggestions.
+  */
+  const handleSuggestionSearch = async () => {
+    const query = input.value.trim();
 
     if (!query) {
-      metaMount.classList.add("hide");
-      resultMount.innerHTML = `<div class="empty-state">Enter a search phrase to get recommendations.</div>`;
+      typedText.classList.add("hide");
+      resultMount.innerHTML = `<div class="empty-state">Type something to see food suggestions.</div>`;
+      return;
+    }
+
+    typedText.classList.remove("hide");
+    typedText.innerHTML = `
+      <div class="recommendation-meta-card">
+        <strong>You typed:</strong> "${query}"
+      </div>
+    `;
+
+    if (query.length < 2) {
+      resultMount.innerHTML = `<div class="empty-state">Keep typing to get better suggestions.</div>`;
       return;
     }
 
@@ -122,44 +123,41 @@ async function setupRecommendationSearch() {
     button.textContent = "Searching...";
 
     try {
-      input.value = query;
       const response = await fetchPreferenceRecommendations(query);
 
-      metaMount.classList.remove("hide");
-      metaMount.innerHTML = `
-        <div class="recommendation-meta-card">
-          <strong>Search:</strong> "${response.query}"
-          <span class="recommendation-meta-divider">•</span>
-          <strong>Results:</strong> ${response.count}
-        </div>
-      `;
-
       if (!response.items.length) {
-        resultMount.innerHTML = `<div class="empty-state">No dishes matched "${response.query}".</div>`;
-      } else {
-        resultMount.innerHTML = response.items.map((item) => renderHomeMenuCard(item, true)).join("");
+        resultMount.innerHTML = `<div class="empty-state">No food suggestions found for "${query}". Try another word.</div>`;
+        return;
       }
+
+      resultMount.innerHTML = response.items
+        .map((item) => renderHomeMenuCard(item))
+        .join("");
     } catch (error) {
-      metaMount.classList.add("hide");
-      resultMount.innerHTML = `<div class="empty-state">Failed to load recommendations. ${error.message}</div>`;
+      resultMount.innerHTML = `<div class="empty-state">Failed to load suggestions. ${error.message}</div>`;
     } finally {
       button.disabled = false;
-      button.textContent = "Find Recommendations";
+      button.textContent = "Show Suggestions";
     }
   };
 
-  button.addEventListener("click", () => handleSearch());
+  /*
+    Live typing suggestion:
+    The search runs after the user stops typing for 500ms.
+  */
+  input.addEventListener("input", () => {
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(handleSuggestionSearch, 500);
+  });
+
+  button.addEventListener("click", handleSuggestionSearch);
 
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      handleSearch();
+      handleSuggestionSearch();
     }
   });
 
-  quickButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      handleSearch(btn.dataset.query || "");
-    });
-  });
+  resultMount.innerHTML = `<div class="empty-state">Type your food preference to see suggestions.</div>`;
 }

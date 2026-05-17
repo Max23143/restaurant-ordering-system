@@ -9,19 +9,36 @@ function setupBookingForm() {
   const form = document.getElementById("bookingForm");
   if (!form) return;
 
-  const currentUser = getCurrentUser();
-
-  if (currentUser) {
-    const fullNameInput = document.getElementById("fullName");
-    const emailInput = document.getElementById("email");
-    const phoneInput = document.getElementById("phone");
-
-    if (fullNameInput) fullNameInput.value = currentUser.fullName || "";
-    if (emailInput) emailInput.value = currentUser.email || "";
-    if (phoneInput) phoneInput.value = currentUser.phone || "";
-  }
+  prefillBookingUserDetails();
 
   form.addEventListener("submit", submitBookingForm);
+}
+
+function prefillBookingUserDetails() {
+  const currentUser = getCurrentUser();
+
+  if (!currentUser) return;
+
+  const fullNameInput = document.getElementById("fullName");
+  const emailInput = document.getElementById("email");
+  const phoneInput = document.getElementById("phone");
+
+  if (fullNameInput) fullNameInput.value = currentUser.fullName || "";
+  if (emailInput) emailInput.value = currentUser.email || "";
+  if (phoneInput) phoneInput.value = currentUser.phone || "";
+}
+
+function formatDateForDateInput(value) {
+  if (!value) return "";
+
+  /*
+    MongoDB date often comes like:
+    2026-05-16T00:00:00.000Z
+
+    HTML date input needs:
+    2026-05-16
+  */
+  return String(value).split("T")[0];
 }
 
 async function submitBookingForm(event) {
@@ -54,6 +71,11 @@ async function submitBookingForm(event) {
     !payload.guests
   ) {
     showMessage("bookingMessage", "Please fill all required booking fields.", "error");
+    return;
+  }
+
+  if (payload.guests < 1) {
+    showMessage("bookingMessage", "Number of guests must be at least 1.", "error");
     return;
   }
 
@@ -94,16 +116,7 @@ function resetBookingForm() {
   form.reset();
   editingBookingId = null;
 
-  const currentUser = getCurrentUser();
-  if (currentUser) {
-    const fullName = document.getElementById("fullName");
-    const email = document.getElementById("email");
-    const phone = document.getElementById("phone");
-
-    if (fullName) fullName.value = currentUser.fullName || "";
-    if (email) email.value = currentUser.email || "";
-    if (phone) phone.value = currentUser.phone || "";
-  }
+  prefillBookingUserDetails();
 
   const submitBtn = document.getElementById("bookingSubmitBtn");
   if (submitBtn) {
@@ -139,12 +152,12 @@ async function loadMyBookings() {
         <div class="card-body">
           <h3 class="card-title">${booking.fullName}</h3>
           <p class="card-text">
-            <strong>Date:</strong> ${booking.bookingDate || "N/A"}<br>
+            <strong>Date:</strong> ${formatDate(booking.bookingDate)}<br>
             <strong>Time:</strong> ${booking.bookingTime || "N/A"}<br>
             <strong>Guests:</strong> ${booking.guests || 0}<br>
             <strong>Phone:</strong> ${booking.phone || "N/A"}<br>
             <strong>Email:</strong> ${booking.email || "N/A"}<br>
-            <strong>Status:</strong> ${booking.status || "Pending"}<br>
+            <strong>Status:</strong> ${booking.status || "pending"}<br>
             <strong>Notes:</strong> ${booking.notes || "None"}
           </p>
 
@@ -176,7 +189,7 @@ async function editBooking(id) {
     document.getElementById("fullName").value = booking.fullName || "";
     document.getElementById("email").value = booking.email || "";
     document.getElementById("phone").value = booking.phone || "";
-    document.getElementById("bookingDate").value = booking.bookingDate || "";
+    document.getElementById("bookingDate").value = formatDateForDateInput(booking.bookingDate);
     document.getElementById("bookingTime").value = booking.bookingTime || "";
     document.getElementById("numberOfGuests").value = booking.guests || "";
     document.getElementById("notes").value = booking.notes || "";
@@ -210,7 +223,7 @@ async function deleteBooking(id) {
       resetBookingForm();
     }
 
-    loadMyBookings();
+    await loadMyBookings();
     showMessage("bookingMessage", "Booking deleted successfully.", "success");
   } catch (error) {
     showMessage("bookingMessage", error.message || "Failed to delete booking.", "error");

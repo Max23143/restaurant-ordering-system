@@ -1,7 +1,8 @@
 function getNavLinks(isLoggedIn = false, role = "customer") {
   const links = [
     { file: "index.html", label: "Home" },
-    { file: "menu.html", label: "Menu" }
+    { file: "menu.html", label: "Menu" },
+    { file: "events.html", label: "Events & Offers" }
   ];
 
   if (isLoggedIn && role !== "admin") {

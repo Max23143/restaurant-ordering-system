@@ -1,20 +1,24 @@
-async function fetchTopRatedRecommendations() {
-  const response = await apiRequest("/recommendations/top-rated");
-  return (response.data || []).map(normalizeMenuItem);
-}
+/*
+  This file connects the frontend suggestion search with the backend
+  recommendation/search endpoint.
 
-async function fetchPersonalizedRecommendations() {
-  const response = await apiRequest("/recommendations/personalized");
-  return {
-    items: (response.data || []).map(normalizeMenuItem)
-  };
-}
+  The user-facing name is "Food Suggestions".
+  The backend route name can still be /recommendations/search.
+*/
 
 async function fetchPreferenceRecommendations(queryInput) {
   const query =
     typeof queryInput === "string"
       ? queryInput.trim()
       : String(queryInput?.query || "").trim();
+
+  if (!query) {
+    return {
+      query: "",
+      count: 0,
+      items: []
+    };
+  }
 
   const response = await apiRequest(
     `/recommendations/search?query=${encodeURIComponent(query)}`

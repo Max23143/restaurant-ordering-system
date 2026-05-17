@@ -6,8 +6,15 @@ import Review from "../models/Review.js";
 import ApiError from "../utils/ApiError.js";
 import catchAsync from "../utils/catchAsync.js";
 import generateToken from "../utils/generateToken.js";
-import sendEmail from "../utils/sendEmail.js";
 
+/*
+  Strong password rule:
+  - At least 8 characters
+  - 1 lowercase letter
+  - 1 uppercase letter
+  - 1 number
+  - 1 special character
+*/
 const strongPasswordPattern =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
@@ -66,6 +73,10 @@ export const loginUser = catchAsync(async (req, res) => {
 
   const normalizedEmail = String(email).toLowerCase().trim();
 
+  /*
+    Password has select:false in User model,
+    so we must explicitly select it for login comparison.
+  */
   const user = await User.findOne({ email: normalizedEmail }).select("+password");
 
   if (!user) {
@@ -187,6 +198,10 @@ export const changeMyPassword = catchAsync(async (req, res) => {
 export const deleteMyAccount = catchAsync(async (req, res) => {
   const userId = req.user._id;
 
+  /*
+    When user deletes account, related orders, bookings,
+    and reviews are deleted to keep the database clean.
+  */
   await Order.deleteMany({ user: userId });
   await Booking.deleteMany({ user: userId });
   await Review.deleteMany({ user: userId });
@@ -213,6 +228,11 @@ export const forgotPassword = catchAsync(async (req, res) => {
     throw new ApiError("No account found with this email.", 404);
   }
 
+  /*
+    Coursework/demo version:
+    This creates a reset link and returns it on the page.
+    It does NOT send email or SMS.
+  */
   const resetToken = crypto.randomBytes(32).toString("hex");
   const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
@@ -226,28 +246,10 @@ export const forgotPassword = catchAsync(async (req, res) => {
 
   const resetUrl = `${resetBaseUrl}?token=${resetToken}`;
 
-  await sendEmail({
-    to: user.email,
-    subject: "RestaurantHub Password Reset",
-    text: `Reset your password using this link: ${resetUrl}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>RestaurantHub Password Reset</h2>
-        <p>You requested a password reset.</p>
-        <p>Click the button below to reset your password:</p>
-        <p>
-          <a href="${resetUrl}" style="display:inline-block;padding:12px 20px;background:#c2410c;color:#fff;text-decoration:none;border-radius:8px;">
-            Reset Password
-          </a>
-        </p>
-        <p>This link will expire in 15 minutes.</p>
-      </div>
-    `
-  });
-
   res.status(200).json({
     success: true,
-    message: "Password reset link sent successfully."
+    message: "Password reset link generated successfully. This demo shows the link on screen instead of sending email or SMS.",
+    resetUrl
   });
 });
 
