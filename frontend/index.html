@@ -14,7 +14,7 @@
       <div class="hero-card">
         <h1>Smart Restaurant Ordering and Management System</h1>
         <p>
-          Browse the menu, place orders, reserve tables, leave reviews, check restaurant events, and discover food suggestions based on what you type.
+          Browse the menu, place orders, reserve tables, leave reviews, and explore restaurant events and offers.
         </p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="menu.html">Explore Menu</a>
@@ -35,60 +35,13 @@
 
   <section class="section">
     <div class="container">
-      <div class="form-card">
-        <h2 class="section-title">Find Food Suggestions</h2>
-        <p class="page-subtitle">
-          Type what you want, for example spicy food, chicken curry, dessert, cheap lunch, vegetarian dinner, or healthy meal.
-        </p>
-
-        <div class="toolbar">
-          <input
-            id="suggestionSearchInput"
-            type="text"
-            placeholder="Start typing your food preference..."
-            autocomplete="off"
-          >
-          <button
-            id="suggestionSearchBtn"
-            class="btn btn-primary"
-            type="button"
-          >
-            Show Suggestions
-          </button>
-        </div>
-
-        <div id="typedSuggestionText" class="recommendation-search-meta hide"></div>
-        <div id="foodSuggestionResults" class="recommendation-results-grid" style="margin-top: 1rem;"></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
       <div class="page-header">
         <h2 class="section-title">Today’s Discounts & Offers</h2>
         <p class="page-subtitle">Special offers available for customers today</p>
       </div>
 
-      <div class="grid grid-3">
-        <article class="offer-card">
-          <span class="badge badge-success">20% OFF</span>
-          <h3>Student Meal Deal</h3>
-          <p>Get 20% off selected lunch meals from 12 PM to 3 PM.</p>
-        </article>
-
-        <article class="offer-card">
-          <span class="badge badge-success">Free Drink</span>
-          <h3>Family Dinner Offer</h3>
-          <p>Book a table for 4 or more guests and get complimentary soft drinks.</p>
-        </article>
-
-        <article class="offer-card">
-          <span class="badge badge-success">Weekend Offer</span>
-          <h3>Dessert Combo</h3>
-          <p>Order any main course and get dessert at half price on weekends.</p>
-        </article>
-      </div>
+      <!-- Dynamic offers will be shown here from database -->
+      <div id="homeOffersContainer" class="grid grid-3"></div>
     </div>
   </section>
 
@@ -96,7 +49,7 @@
     <div class="container">
       <div class="page-header">
         <h2 class="section-title">Featured Dishes</h2>
-        <p class="page-subtitle">Popular dishes from the live menu</p>
+        <p class="page-subtitle">Popular dishes from the menu</p>
       </div>
       <div id="featuredItems" class="grid grid-4"></div>
     </div>

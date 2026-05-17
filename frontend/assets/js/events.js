@@ -1,81 +1,78 @@
 document.addEventListener("DOMContentLoaded", () => {
-  renderRestaurantEvents();
-  renderRestaurantOffers();
+  loadRestaurantEvents();
+  loadRestaurantOffers();
 });
 
 /*
-  Static events data for the frontend.
-  This is suitable for your current project stage.
-  Later, this can be moved into MongoDB and managed by admin.
+  Loads active events from database.
+  New admin-added events will appear automatically.
 */
-const restaurantEvents = [
-  {
-    title: "Live Music Friday",
-    date: "Every Friday",
-    time: "7:00 PM - 10:00 PM",
-    description: "Enjoy dinner with live acoustic music from local performers.",
-    image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80"
-  },
-  {
-    title: "Family Sunday Dinner",
-    date: "Every Sunday",
-    time: "4:00 PM - 8:00 PM",
-    description: "A family-friendly evening with group meal deals and kids' menu options.",
-    image: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1200&q=80"
-  },
-  {
-    title: "Chef’s Special Night",
-    date: "Last Saturday of the Month",
-    time: "6:00 PM - 9:30 PM",
-    description: "Try limited-edition dishes prepared specially by the restaurant chef.",
-    image: "https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&w=1200&q=80"
-  }
-];
-
-const restaurantOffers = [
-  {
-    title: "Student Lunch Discount",
-    discount: "20% OFF",
-    description: "Students get 20% off selected lunch meals between 12 PM and 3 PM."
-  },
-  {
-    title: "Birthday Table Offer",
-    discount: "Free Dessert",
-    description: "Book a birthday table and receive one complimentary dessert."
-  },
-  {
-    title: "Family Booking Offer",
-    discount: "Free Drinks",
-    description: "Book a table for 4 or more guests and receive complimentary soft drinks."
-  }
-];
-
-function renderRestaurantEvents() {
+async function loadRestaurantEvents() {
   const mount = document.getElementById("eventsContainer");
   if (!mount) return;
 
-  mount.innerHTML = restaurantEvents.map((event) => `
-    <article class="event-card">
-      <img src="${event.image}" alt="${event.title}">
-      <div class="event-card-body">
-        <span class="badge badge-success">${event.date}</span>
-        <h3>${event.title}</h3>
-        <p><strong>Time:</strong> ${event.time}</p>
-        <p>${event.description}</p>
-      </div>
-    </article>
-  `).join("");
+  try {
+    const response = await apiRequest("/events-offers?type=event");
+    const events = response.data || [];
+
+    if (!events.length) {
+      mount.innerHTML = `<div class="empty-state">No active events available.</div>`;
+      return;
+    }
+
+    mount.innerHTML = events.map(renderEventCard).join("");
+  } catch (error) {
+    mount.innerHTML = `<div class="empty-state">Failed to load events. ${error.message}</div>`;
+  }
 }
 
-function renderRestaurantOffers() {
+/*
+  Loads active offers from database.
+  New admin-added offers will appear automatically.
+*/
+async function loadRestaurantOffers() {
   const mount = document.getElementById("offersContainer");
   if (!mount) return;
 
-  mount.innerHTML = restaurantOffers.map((offer) => `
-    <article class="offer-card">
-      <span class="badge badge-success">${offer.discount}</span>
-      <h3>${offer.title}</h3>
-      <p>${offer.description}</p>
+  try {
+    const response = await apiRequest("/events-offers?type=offer");
+    const offers = response.data || [];
+
+    if (!offers.length) {
+      mount.innerHTML = `<div class="empty-state">No active offers available.</div>`;
+      return;
+    }
+
+    mount.innerHTML = offers.map(renderOfferCard).join("");
+  } catch (error) {
+    mount.innerHTML = `<div class="empty-state">Failed to load offers. ${error.message}</div>`;
+  }
+}
+
+function renderEventCard(event) {
+  return `
+    <article class="event-card">
+      ${event.image ? `<img src="${event.image}" alt="${event.title}" class="event-card-image">` : ""}
+      <div class="event-card-body">
+        <span class="badge badge-success">${event.dateLabel || "Event"}</span>
+        <h3>${event.title}</h3>
+        <p><strong>Time:</strong> ${event.timeLabel || "N/A"}</p>
+        <p>${event.description}</p>
+      </div>
     </article>
-  `).join("");
+  `;
+}
+
+function renderOfferCard(offer) {
+  return `
+    <article class="offer-card">
+      ${offer.image ? `<img src="${offer.image}" alt="${offer.title}" class="offer-card-image">` : ""}
+      <div class="offer-card-body">
+        <span class="badge badge-success">${offer.discountLabel || "Offer"}</span>
+        <h3>${offer.title}</h3>
+        <p>${offer.description}</p>
+        ${offer.dateLabel ? `<p><strong>Available:</strong> ${offer.dateLabel}</p>` : ""}
+      </div>
+    </article>
+  `;
 }

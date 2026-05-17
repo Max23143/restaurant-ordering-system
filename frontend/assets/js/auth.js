@@ -13,10 +13,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (forgotPasswordForm) {
-    forgotPasswordForm.addEventListener("submit", sendForgotPasswordLink);
+    forgotPasswordForm.addEventListener("submit", generateResetPin);
   }
 
   if (resetPasswordForm) {
+    prefillResetPasswordEmail();
     resetPasswordForm.addEventListener("submit", submitResetPassword);
   }
 
@@ -47,8 +48,8 @@ function buildFullPhoneNumber(countryCode, localPhone) {
 }
 
 /*
-  Password strength checker.
-  This gives clear suggestions while the user types.
+  Password strength checker:
+  This gives live feedback while the user types.
 */
 function evaluatePassword(password) {
   const rules = {
@@ -103,10 +104,6 @@ function setupPasswordStrengthChecker(inputId, textId, fillId, listId) {
       item.classList.toggle("passed", passed);
       item.classList.toggle("failed", !passed);
     });
-
-    if (!password) {
-      text.textContent = "Weak";
-    }
   });
 }
 
@@ -190,7 +187,7 @@ async function registerUser(event) {
   if (!isPasswordStrongEnough(password)) {
     showMessage(
       "authMessage",
-      "Please use a strong password: at least 8 characters, uppercase, lowercase, number, and special character.",
+      "Please use a strong password: 8+ characters, uppercase, lowercase, number, and special character.",
       "error"
     );
     return;
@@ -233,11 +230,13 @@ async function registerUser(event) {
 }
 
 /*
-  Demo forgot-password flow:
-  The backend returns a reset link directly.
-  No email and no phone/SMS is used.
+  Forgot password PIN flow:
+  1. User enters email.
+  2. Backend generates a 6-digit reset PIN.
+  3. Frontend shows the PIN in alert.
+  4. User is redirected to reset-password.html.
 */
-async function sendForgotPasswordLink(event) {
+async function generateResetPin(event) {
   event.preventDefault();
   hideMessage("forgotPasswordMessage");
 
@@ -245,12 +244,12 @@ async function sendForgotPasswordLink(event) {
   const button = document.getElementById("forgotPasswordBtn");
 
   if (!email) {
-    showMessage("forgotPasswordMessage", "Email is required to find your account.", "error");
+    showMessage("forgotPasswordMessage", "Account email is required.", "error");
     return;
   }
 
   button.disabled = true;
-  button.textContent = "Generating...";
+  button.textContent = "Generating PIN...";
 
   try {
     const response = await apiRequest("/auth/forgot-password", {
@@ -258,61 +257,81 @@ async function sendForgotPasswordLink(event) {
       body: JSON.stringify({ email })
     });
 
-    if (!response.resetUrl) {
-      throw new Error("Reset link was not returned by the server.");
+    if (!response.resetPin) {
+      throw new Error("Reset PIN was not returned by the server.");
     }
 
-    showMessage(
-      "forgotPasswordMessage",
-      `Reset link generated. Copy and open this link: ${response.resetUrl}`,
-      "success"
+    /*
+      For the project demo, the reset PIN is shown in an alert.
+      It is not sent by email or phone.
+    */
+    alert(`Your reset PIN is: ${response.resetPin}`);
+
+    window.location.href = buildFrontendUrl(
+      `reset-password.html?email=${encodeURIComponent(email)}`
     );
   } catch (error) {
     console.error("Forgot password failed:", error);
-    showMessage("forgotPasswordMessage", error.message || "Failed to generate reset link.", "error");
+    showMessage("forgotPasswordMessage", error.message || "Failed to generate reset PIN.", "error");
   } finally {
     button.disabled = false;
-    button.textContent = "Generate Reset Link";
+    button.textContent = "Generate Reset PIN";
   }
 }
 
+function prefillResetPasswordEmail() {
+  const emailInput = document.getElementById("resetPasswordEmail");
+  if (!emailInput) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get("email") || "";
+
+  if (email) {
+    emailInput.value = email;
+  }
+}
+
+/*
+  Reset password flow:
+  User enters email + reset PIN + new strong password.
+*/
 async function submitResetPassword(event) {
   event.preventDefault();
   hideMessage("resetPasswordMessage");
 
+  const email = document.getElementById("resetPasswordEmail")?.value.trim() || "";
+  const pin = document.getElementById("resetPasswordPin")?.value.trim() || "";
   const password = document.getElementById("resetPasswordInput")?.value || "";
   const button = document.getElementById("resetPasswordBtn");
 
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get("token") || "";
-
-  if (!token) {
-    showMessage("resetPasswordMessage", "Reset token is missing.", "error");
+  if (!email || !pin || !password) {
+    showMessage("resetPasswordMessage", "Email, reset PIN, and new password are required.", "error");
     return;
   }
 
-  if (!password) {
-    showMessage("resetPasswordMessage", "New password is required.", "error");
+  if (!/^\d{6}$/.test(pin)) {
+    showMessage("resetPasswordMessage", "Reset PIN must be exactly 6 digits.", "error");
     return;
   }
 
   if (!isPasswordStrongEnough(password)) {
     showMessage(
       "resetPasswordMessage",
-      "Please use a strong password: at least 8 characters, uppercase, lowercase, number, and special character.",
+      "Please use a strong password: 8+ characters, uppercase, lowercase, number, and special character.",
       "error"
     );
     return;
   }
 
   button.disabled = true;
-  button.textContent = "Resetting...";
+  button.textContent = "Saving Password...";
 
   try {
     await apiRequest("/auth/reset-password", {
       method: "POST",
       body: JSON.stringify({
-        token,
+        email,
+        pin,
         password
       })
     });
@@ -321,12 +340,12 @@ async function submitResetPassword(event) {
 
     setTimeout(() => {
       window.location.href = buildFrontendUrl("login.html");
-    }, 1000);
+    }, 1200);
   } catch (error) {
     console.error("Reset password failed:", error);
     showMessage("resetPasswordMessage", error.message || "Failed to reset password.", "error");
   } finally {
     button.disabled = false;
-    button.textContent = "Reset Password";
+    button.textContent = "Save New Password";
   }
 }

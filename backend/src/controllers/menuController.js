@@ -2,13 +2,32 @@ import MenuItem from "../models/MenuItem.js";
 import ApiError from "../utils/ApiError.js";
 import catchAsync from "../utils/catchAsync.js";
 
+const toArray = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
 export const getAllMenuItems = catchAsync(async (req, res) => {
-  const { category, available, search } = req.query;
+  const { category, cuisine, available, search } = req.query;
 
   const filter = {};
 
   if (category) {
-    filter.category = category;
+    filter.category = { $regex: category, $options: "i" };
+  }
+
+  if (cuisine) {
+    filter.cuisine = { $regex: cuisine, $options: "i" };
   }
 
   if (available !== undefined) {
@@ -19,7 +38,10 @@ export const getAllMenuItems = catchAsync(async (req, res) => {
     filter.$or = [
       { name: { $regex: search, $options: "i" } },
       { description: { $regex: search, $options: "i" } },
-      { category: { $regex: search, $options: "i" } }
+      { category: { $regex: search, $options: "i" } },
+      { cuisine: { $regex: search, $options: "i" } },
+      { tags: { $regex: search, $options: "i" } },
+      { flavours: { $regex: search, $options: "i" } }
     ];
   }
 
@@ -46,7 +68,17 @@ export const getMenuItemById = catchAsync(async (req, res) => {
 });
 
 export const createMenuItem = catchAsync(async (req, res) => {
-  const { name, description, category, price, image, tags, isAvailable } = req.body;
+  const {
+    name,
+    description,
+    category,
+    cuisine,
+    price,
+    image,
+    tags,
+    flavours,
+    isAvailable
+  } = req.body;
 
   if (!name || !description || !category || price === undefined) {
     throw new ApiError("Name, description, category, and price are required.", 400);
@@ -56,10 +88,12 @@ export const createMenuItem = catchAsync(async (req, res) => {
     name,
     description,
     category,
+    cuisine: cuisine || "",
     price,
-    image,
-    tags,
-    isAvailable
+    image: image || "",
+    tags: toArray(tags),
+    flavours: toArray(flavours),
+    isAvailable: isAvailable !== false
   });
 
   res.status(201).json({
@@ -70,7 +104,19 @@ export const createMenuItem = catchAsync(async (req, res) => {
 });
 
 export const updateMenuItem = catchAsync(async (req, res) => {
-  const menuItem = await MenuItem.findByIdAndUpdate(req.params.id, req.body, {
+  const updates = {
+    ...req.body
+  };
+
+  if (req.body.tags !== undefined) {
+    updates.tags = toArray(req.body.tags);
+  }
+
+  if (req.body.flavours !== undefined) {
+    updates.flavours = toArray(req.body.flavours);
+  }
+
+  const menuItem = await MenuItem.findByIdAndUpdate(req.params.id, updates, {
     new: true,
     runValidators: true
   });

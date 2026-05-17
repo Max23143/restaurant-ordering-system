@@ -17,6 +17,7 @@ function getNavLinks(isLoggedIn = false, role = "customer") {
     links.push({ file: "admin/orders.html", label: "Admin Orders" });
     links.push({ file: "admin/bookings.html", label: "Admin Bookings" });
     links.push({ file: "admin/reviews.html", label: "Admin Reviews" });
+    links.push({ file: "admin/events.html", label: "Admin Events" });
   }
 
   if (!isLoggedIn) {

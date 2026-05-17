@@ -59,6 +59,8 @@ function normalizeMenuItem(item = {}) {
     name: item.name || "Unnamed Item",
     description: item.description || "No description available.",
     category: item.category || "General",
+    cuisine: item.cuisine || "",
+    flavours: Array.isArray(item.flavours) ? item.flavours : [],
     price: Number(item.price || 0),
     image:
       item.image ||
@@ -68,9 +70,8 @@ function normalizeMenuItem(item = {}) {
     ratingAverage: Number(item.ratingAverage || 0),
     ratingCount: Number(item.ratingCount || 0),
     tags: Array.isArray(item.tags) ? item.tags : [],
-    cuisine: item.cuisine || "",
-    isVegetarian: Boolean(item.isVegetarian),
-    isVegan: Boolean(item.isVegan)
+    recommendationScore: Number(item.recommendationScore || 0),
+    matchedTerms: Array.isArray(item.matchedTerms) ? item.matchedTerms : []
   };
 }
 

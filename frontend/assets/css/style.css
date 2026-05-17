@@ -1079,3 +1079,45 @@ select option {
 .password-suggestion-list li.failed::before {
   content: "• ";
 }
+
+/* Offer and event cards with image support */
+.offer-card,
+.event-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.offer-card:hover,
+.event-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.offer-card-image,
+.event-card-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+.offer-card-body,
+.event-card-body {
+  padding: 1.2rem;
+}
+
+.offer-card h3,
+.event-card h3 {
+  margin: 0.8rem 0 0.5rem;
+  color: var(--text);
+}
+
+.offer-card p,
+.event-card p {
+  color: var(--muted);
+  line-height: 1.6;
+}

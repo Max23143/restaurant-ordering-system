@@ -5,6 +5,7 @@ import orderRoutes from "./orderRoutes.js";
 import bookingRoutes from "./bookingRoutes.js";
 import reviewRoutes from "./reviewRoutes.js";
 import recommendationRoutes from "./recommendationRoutes.js";
+import eventOfferRoutes from "./eventOfferRoutes.js";
 
 const router = express.Router();
 
@@ -21,5 +22,6 @@ router.use("/orders", orderRoutes);
 router.use("/bookings", bookingRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/recommendations", recommendationRoutes);
+router.use("/events-offers", eventOfferRoutes);
 
 export default router;

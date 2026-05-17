@@ -10,6 +10,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 let editingMenuItemId = null;
 
+function commaTextToArray(value = "") {
+  return String(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function setupAdminMenuForm() {
   const form = document.getElementById("menuForm");
   if (!form) return;
@@ -37,10 +44,12 @@ async function loadAdminMenuItems() {
           <h3 class="card-title">${item.name}</h3>
           <p class="card-text">
             <strong>Category:</strong> ${item.category}<br>
+            <strong>Cuisine:</strong> ${item.cuisine || "Not set"}<br>
             <strong>Price:</strong> ${formatCurrency(item.price)}<br>
             <strong>Available:</strong> ${item.isAvailable ? "Yes" : "No"}<br>
-            <strong>Description:</strong> ${item.description}<br>
-            <strong>Tags:</strong> ${(item.tags || []).join(", ") || "None"}
+            <strong>Flavours:</strong> ${(item.flavours || []).join(", ") || "None"}<br>
+            <strong>Tags:</strong> ${(item.tags || []).join(", ") || "None"}<br>
+            <strong>Description:</strong> ${item.description}
           </p>
 
           <div class="inline-actions">
@@ -62,13 +71,12 @@ async function submitAdminMenuForm(event) {
   const payload = {
     name: document.getElementById("menuName")?.value.trim() || "",
     category: document.getElementById("menuCategory")?.value || "",
+    cuisine: document.getElementById("menuCuisine")?.value.trim() || "",
     price: Number(document.getElementById("menuPrice")?.value || 0),
     image: document.getElementById("menuImage")?.value.trim() || "",
     description: document.getElementById("menuDescription")?.value.trim() || "",
-    tags: (document.getElementById("menuTags")?.value || "")
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean),
+    tags: commaTextToArray(document.getElementById("menuTags")?.value || ""),
+    flavours: commaTextToArray(document.getElementById("menuFlavours")?.value || ""),
     isAvailable: document.getElementById("menuAvailable")?.checked ?? true
   };
 
@@ -78,12 +86,14 @@ async function submitAdminMenuForm(event) {
         method: "PUT",
         body: JSON.stringify(payload)
       });
+
       showMessage("adminMenuMessage", "Menu item updated successfully.", "success");
     } else {
       await apiRequest("/menu", {
         method: "POST",
         body: JSON.stringify(payload)
       });
+
       showMessage("adminMenuMessage", "Menu item added successfully.", "success");
     }
 
@@ -103,10 +113,12 @@ async function editAdminMenuItem(id) {
     document.getElementById("menuItemId").value = item._id;
     document.getElementById("menuName").value = item.name;
     document.getElementById("menuCategory").value = item.category;
+    document.getElementById("menuCuisine").value = item.cuisine || "";
     document.getElementById("menuPrice").value = item.price;
     document.getElementById("menuImage").value = item.image;
     document.getElementById("menuDescription").value = item.description;
     document.getElementById("menuTags").value = (item.tags || []).join(", ");
+    document.getElementById("menuFlavours").value = (item.flavours || []).join(", ");
     document.getElementById("menuAvailable").checked = item.isAvailable;
 
     const submitBtn = document.getElementById("menuSubmitBtn");

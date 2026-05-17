@@ -3,8 +3,47 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initializeHomePage() {
+  await loadHomeOffers();
   await loadFeaturedItems();
-  setupFoodSuggestionSearch();
+}
+
+/*
+  Home offers:
+  - loads active offers from database
+  - shows latest added offers first
+  - shows image if available
+*/
+async function loadHomeOffers() {
+  const mount = document.getElementById("homeOffersContainer");
+  if (!mount) return;
+
+  try {
+    const response = await apiRequest("/events-offers?type=offer");
+    const offers = response.data || [];
+
+    if (!offers.length) {
+      mount.innerHTML = `<div class="empty-state">No offers available right now.</div>`;
+      return;
+    }
+
+    mount.innerHTML = offers.slice(0, 3).map(renderHomeOfferCard).join("");
+  } catch (error) {
+    mount.innerHTML = `<div class="empty-state">Failed to load offers. ${error.message}</div>`;
+  }
+}
+
+function renderHomeOfferCard(offer) {
+  return `
+    <article class="offer-card">
+      ${offer.image ? `<img src="${offer.image}" alt="${offer.title}" class="offer-card-image">` : ""}
+      <div class="offer-card-body">
+        <span class="badge badge-success">${offer.discountLabel || "Offer"}</span>
+        <h3>${offer.title}</h3>
+        <p>${offer.description}</p>
+        ${offer.dateLabel ? `<p><strong>Available:</strong> ${offer.dateLabel}</p>` : ""}
+      </div>
+    </article>
+  `;
 }
 
 async function loadFeaturedItems() {
@@ -13,7 +52,6 @@ async function loadFeaturedItems() {
 
   try {
     const response = await apiRequest("/menu");
-
     const items = (response.data || [])
       .map(normalizeMenuItem)
       .filter((item) => item.isAvailable)
@@ -24,7 +62,7 @@ async function loadFeaturedItems() {
       return;
     }
 
-    mount.innerHTML = items.map((item) => renderHomeMenuCard(item)).join("");
+    mount.innerHTML = items.map(renderHomeMenuCard).join("");
   } catch (error) {
     mount.innerHTML = `<div class="empty-state">Failed to load featured dishes. ${error.message}</div>`;
   }
@@ -82,82 +120,4 @@ async function addHomeItemToCart(id) {
   } catch (error) {
     alert(error.message || "Failed to add item to cart.");
   }
-}
-
-function setupFoodSuggestionSearch() {
-  const input = document.getElementById("suggestionSearchInput");
-  const button = document.getElementById("suggestionSearchBtn");
-  const typedText = document.getElementById("typedSuggestionText");
-  const resultMount = document.getElementById("foodSuggestionResults");
-
-  if (!input || !button || !typedText || !resultMount) return;
-
-  let typingTimer = null;
-
-  /*
-    This function shows what the user typed and then asks the backend
-    for matching food suggestions.
-  */
-  const handleSuggestionSearch = async () => {
-    const query = input.value.trim();
-
-    if (!query) {
-      typedText.classList.add("hide");
-      resultMount.innerHTML = `<div class="empty-state">Type something to see food suggestions.</div>`;
-      return;
-    }
-
-    typedText.classList.remove("hide");
-    typedText.innerHTML = `
-      <div class="recommendation-meta-card">
-        <strong>You typed:</strong> "${query}"
-      </div>
-    `;
-
-    if (query.length < 2) {
-      resultMount.innerHTML = `<div class="empty-state">Keep typing to get better suggestions.</div>`;
-      return;
-    }
-
-    button.disabled = true;
-    button.textContent = "Searching...";
-
-    try {
-      const response = await fetchPreferenceRecommendations(query);
-
-      if (!response.items.length) {
-        resultMount.innerHTML = `<div class="empty-state">No food suggestions found for "${query}". Try another word.</div>`;
-        return;
-      }
-
-      resultMount.innerHTML = response.items
-        .map((item) => renderHomeMenuCard(item))
-        .join("");
-    } catch (error) {
-      resultMount.innerHTML = `<div class="empty-state">Failed to load suggestions. ${error.message}</div>`;
-    } finally {
-      button.disabled = false;
-      button.textContent = "Show Suggestions";
-    }
-  };
-
-  /*
-    Live typing suggestion:
-    The search runs after the user stops typing for 500ms.
-  */
-  input.addEventListener("input", () => {
-    clearTimeout(typingTimer);
-    typingTimer = setTimeout(handleSuggestionSearch, 500);
-  });
-
-  button.addEventListener("click", handleSuggestionSearch);
-
-  input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      handleSuggestionSearch();
-    }
-  });
-
-  resultMount.innerHTML = `<div class="empty-state">Type your food preference to see suggestions.</div>`;
 }

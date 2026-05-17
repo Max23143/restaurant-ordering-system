@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RestaurantHub - Admin Events & Offers</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="container">
+    <div class="page-header">
+      <h1 class="page-title">Admin Events & Offers</h1>
+      <p class="page-subtitle">Create, edit, and delete restaurant events and customer offers.</p>
+    </div>
+
+    <div id="adminEventOfferMessage" class="message hide"></div>
+
+    <section class="section grid grid-2">
+      <section class="form-card">
+        <h2 class="section-title">Add / Edit Event or Offer</h2>
+
+        <form id="eventOfferForm" class="form-grid">
+          <input type="hidden" id="eventOfferId">
+
+          <div class="form-group">
+            <label for="eventOfferType">Type</label>
+            <select id="eventOfferType" required>
+              <option value="event">Event</option>
+              <option value="offer">Offer</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="eventOfferTitle">Title</label>
+            <input id="eventOfferTitle" type="text" required>
+          </div>
+
+          <div class="form-group">
+            <label for="eventOfferDateLabel">Date Label</label>
+            <input id="eventOfferDateLabel" type="text" placeholder="Every Friday, This Weekend">
+          </div>
+
+          <div class="form-group">
+            <label for="eventOfferTimeLabel">Time Label</label>
+            <input id="eventOfferTimeLabel" type="text" placeholder="7 PM - 10 PM">
+          </div>
+
+          <div class="form-group">
+            <label for="eventOfferDiscountLabel">Discount Label</label>
+            <input id="eventOfferDiscountLabel" type="text" placeholder="20% OFF, Free Dessert">
+          </div>
+
+          <div class="form-group">
+            <label for="eventOfferDisplayOrder">Display Order</label>
+            <input id="eventOfferDisplayOrder" type="number" value="0">
+          </div>
+
+          <div class="form-group full">
+            <label for="eventOfferImage">Image URL</label>
+            <input id="eventOfferImage" type="text" placeholder="https://example.com/image.jpg">
+          </div>
+
+          <div class="form-group full">
+            <label for="eventOfferDescription">Description</label>
+            <textarea id="eventOfferDescription" rows="5" required></textarea>
+          </div>
+
+          <div class="form-group full" style="display:flex;align-items:center;gap:0.75rem;">
+            <input id="eventOfferActive" type="checkbox" checked style="width:auto;">
+            <label for="eventOfferActive" style="margin:0;">Active</label>
+          </div>
+
+          <div class="form-group full">
+            <div class="form-actions">
+              <button class="btn btn-primary" id="eventOfferSubmitBtn" type="submit">Save</button>
+              <button class="btn btn-secondary" id="eventOfferResetBtn" type="button">Reset</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section>
+        <h2 class="section-title">Current Events & Offers</h2>
+        <div id="adminEventOfferList"></div>
+      </section>
+    </section>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/main.js"></script>
+  <script src="../assets/js/admin-events.js"></script>
+</body>
+</html>

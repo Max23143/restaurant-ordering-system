@@ -3,6 +3,194 @@ import Order from "../models/Order.js";
 import ApiError from "../utils/ApiError.js";
 import catchAsync from "../utils/catchAsync.js";
 
+const normalizeText = (value = "") => {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const unique = (items = []) => [...new Set(items.filter(Boolean))];
+
+const getWords = (query = "") => {
+  return normalizeText(query)
+    .split(" ")
+    .map((word) => word.trim())
+    .filter((word) => word.length > 1);
+};
+
+/*
+  Cuisine map:
+  When user types "Italian food", it expands search to pizza, pasta,
+  spaghetti, risotto, lasagne etc.
+*/
+const cuisineMap = {
+  italian: ["italian", "pizza", "pasta", "spaghetti", "lasagne", "lasagna", "risotto", "carbonara", "bolognese", "margherita"],
+  english: ["english", "british", "uk", "fish and chips", "roast", "pie", "breakfast", "beans", "sausage", "chips"],
+  british: ["english", "british", "fish and chips", "roast", "pie", "breakfast", "sausage"],
+  indian: ["indian", "curry", "masala", "tikka", "biryani", "naan", "rice", "spicy"],
+  nepali: ["nepali", "momo", "chowmein", "thukpa", "dal bhat", "sekuwa", "achar"],
+  chinese: ["chinese", "noodles", "fried rice", "chow mein", "dumpling", "sweet sour"],
+  thai: ["thai", "pad thai", "green curry", "red curry", "coconut", "lemongrass"],
+  american: ["american", "burger", "fries", "bbq", "wings", "hot dog"],
+  mexican: ["mexican", "taco", "burrito", "nachos", "quesadilla", "salsa"],
+  japanese: ["japanese", "sushi", "ramen", "teriyaki", "katsu"],
+  korean: ["korean", "kimchi", "bbq", "bulgogi", "bibimbap"]
+};
+
+const flavourMap = {
+  spicy: ["spicy", "hot", "chilli", "chili", "pepper", "masala"],
+  sweet: ["sweet", "dessert", "cake", "chocolate", "caramel", "vanilla", "honey"],
+  cheesy: ["cheesy", "cheese", "mozzarella", "cheddar"],
+  creamy: ["creamy", "cream", "sauce", "white sauce"],
+  grilled: ["grilled", "bbq", "barbecue", "smoky", "charcoal"],
+  crispy: ["crispy", "crunchy", "fried"],
+  mild: ["mild", "light", "soft"],
+  sour: ["sour", "tangy", "lemon", "lime"],
+  healthy: ["healthy", "salad", "light", "fresh", "vegetable"],
+  vegetarian: ["vegetarian", "veg", "plant"],
+  vegan: ["vegan", "plant-based"]
+};
+
+const foodIntentWords = [
+  "food",
+  "meal",
+  "dish",
+  "dishes",
+  "restaurant",
+  "eat",
+  "eating",
+  "flavour",
+  "flavor",
+  "taste",
+  "type",
+  "show",
+  "want",
+  "with"
+];
+
+const expandQuery = (query = "") => {
+  const words = getWords(query);
+  const expanded = new Set(words);
+
+  for (const word of words) {
+    if (cuisineMap[word]) {
+      cuisineMap[word].forEach((term) => expanded.add(term));
+    }
+
+    if (flavourMap[word]) {
+      flavourMap[word].forEach((term) => expanded.add(term));
+    }
+  }
+
+  return unique([...expanded].filter((word) => !foodIntentWords.includes(word)));
+};
+
+const itemSearchText = (item) => {
+  return normalizeText([
+    item.name,
+    item.description,
+    item.category,
+    item.cuisine,
+    ...(item.tags || []),
+    ...(item.flavours || [])
+  ].join(" "));
+};
+
+const getPriceTier = (price) => {
+  const value = Number(price || 0);
+
+  if (value <= 8) return "budget";
+  if (value <= 18) return "mid";
+  return "premium";
+};
+
+const calculateItemScore = (item, queryWords, expandedTerms) => {
+  const text = itemSearchText(item);
+
+  const name = normalizeText(item.name);
+  const description = normalizeText(item.description);
+  const category = normalizeText(item.category);
+  const cuisine = normalizeText(item.cuisine);
+  const tags = normalizeText((item.tags || []).join(" "));
+  const flavours = normalizeText((item.flavours || []).join(" "));
+
+  let score = 0;
+  let matchedTerms = [];
+
+  for (const term of expandedTerms) {
+    if (!term) continue;
+
+    const normalizedTerm = normalizeText(term);
+
+    if (name.includes(normalizedTerm)) {
+      score += 12;
+      matchedTerms.push(term);
+    }
+
+    if (cuisine.includes(normalizedTerm)) {
+      score += 14;
+      matchedTerms.push(term);
+    }
+
+    if (category.includes(normalizedTerm)) {
+      score += 9;
+      matchedTerms.push(term);
+    }
+
+    if (tags.includes(normalizedTerm)) {
+      score += 8;
+      matchedTerms.push(term);
+    }
+
+    if (flavours.includes(normalizedTerm)) {
+      score += 8;
+      matchedTerms.push(term);
+    }
+
+    if (description.includes(normalizedTerm)) {
+      score += 5;
+      matchedTerms.push(term);
+    }
+
+    if (text.includes(normalizedTerm)) {
+      score += 2;
+      matchedTerms.push(term);
+    }
+  }
+
+  /*
+    Price intent:
+    budget/cheap/affordable returns cheaper items higher.
+  */
+  const joinedQuery = queryWords.join(" ");
+
+  if (joinedQuery.includes("cheap") || joinedQuery.includes("budget") || joinedQuery.includes("affordable")) {
+    const tier = getPriceTier(item.price);
+    if (tier === "budget") score += 10;
+    if (tier === "mid") score += 4;
+    if (tier === "premium") score -= 6;
+  }
+
+  if (joinedQuery.includes("premium") || joinedQuery.includes("expensive") || joinedQuery.includes("luxury")) {
+    const tier = getPriceTier(item.price);
+    if (tier === "premium") score += 10;
+  }
+
+  /*
+    Rating helps good items appear slightly higher,
+    but search relevance is still the main factor.
+  */
+  score += Number(item.ratingAverage || 0) * 1.2;
+  score += Math.min(Number(item.ratingCount || 0) * 0.08, 3);
+
+  return {
+    score: Number(score.toFixed(2)),
+    matchedTerms: unique(matchedTerms)
+  };
+};
+
 const calculateTagOverlap = (sourceTags = [], targetTags = []) => {
   const sourceSet = new Set(sourceTags.map((tag) => String(tag).toLowerCase()));
   const targetSet = new Set(targetTags.map((tag) => String(tag).toLowerCase()));
@@ -16,158 +204,6 @@ const calculateTagOverlap = (sourceTags = [], targetTags = []) => {
   }
 
   return overlap;
-};
-
-const synonymMap = {
-  veg: ["vegetarian", "veg"],
-  vegetarian: ["vegetarian", "veg"],
-  vegan: ["vegan", "plant-based"],
-  spicy: ["spicy", "hot", "chilli", "chili", "masala"],
-  hot: ["spicy", "hot", "chilli", "chili"],
-  sweet: ["sweet", "dessert", "sugary"],
-  dessert: ["dessert", "sweet", "cake", "ice cream", "chocolate"],
-  chicken: ["chicken"],
-  fish: ["fish", "seafood", "prawn", "shrimp"],
-  seafood: ["fish", "seafood", "prawn", "shrimp"],
-  cheap: ["cheap", "budget", "affordable", "low price"],
-  budget: ["cheap", "budget", "affordable"],
-  affordable: ["cheap", "budget", "affordable"],
-  premium: ["premium", "expensive", "luxury"],
-  expensive: ["premium", "expensive", "luxury"],
-  lunch: ["lunch"],
-  dinner: ["dinner"],
-  breakfast: ["breakfast"],
-  burger: ["burger"],
-  curry: ["curry"],
-  pizza: ["pizza"],
-  pasta: ["pasta"],
-  rice: ["rice"],
-  cake: ["cake", "dessert", "sweet"],
-  healthy: ["healthy", "salad", "light"],
-  grilled: ["grilled", "bbq", "barbecue", "barbeque"],
-  cheesy: ["cheesy", "cheese"]
-};
-
-const nonVegWords = [
-  "chicken",
-  "beef",
-  "mutton",
-  "lamb",
-  "pork",
-  "fish",
-  "seafood",
-  "prawn",
-  "shrimp",
-  "meat",
-  "egg",
-  "turkey",
-  "bacon",
-  "ham"
-];
-
-const sweetWords = [
-  "sweet",
-  "dessert",
-  "cake",
-  "ice cream",
-  "chocolate",
-  "caramel",
-  "vanilla",
-  "strawberry",
-  "honey",
-  "sugar"
-];
-
-const spicyWords = [
-  "spicy",
-  "hot",
-  "chilli",
-  "chili",
-  "pepper",
-  "masala"
-];
-
-const dessertWords = [
-  "dessert",
-  "cake",
-  "ice cream",
-  "brownie",
-  "pastry",
-  "sweet",
-  "chocolate"
-];
-
-const dinnerWords = [
-  "main course",
-  "curry",
-  "rice",
-  "pasta",
-  "noodles",
-  "burger",
-  "pizza",
-  "meal"
-];
-
-const breakfastWords = [
-  "breakfast",
-  "toast",
-  "omelette",
-  "egg",
-  "coffee",
-  "tea",
-  "sandwich"
-];
-
-const lunchWords = [
-  "lunch",
-  "burger",
-  "wrap",
-  "sandwich",
-  "rice",
-  "pasta",
-  "meal"
-];
-
-const expandKeywords = (keywords = []) => {
-  const expanded = new Set();
-
-  for (const keyword of keywords) {
-    expanded.add(keyword);
-    const synonyms = synonymMap[keyword] || [];
-    synonyms.forEach((entry) => expanded.add(entry));
-  }
-
-  return [...expanded];
-};
-
-const normalizeItemForSearch = (item) => {
-  const name = String(item.name || "").toLowerCase();
-  const description = String(item.description || "").toLowerCase();
-  const category = String(item.category || "").toLowerCase();
-  const tags = (item.tags || []).map((tag) => String(tag).toLowerCase());
-  const combinedText = `${name} ${description} ${category} ${tags.join(" ")}`;
-
-  return { name, description, category, tags, combinedText };
-};
-
-const getPriceTier = (price) => {
-  const value = Number(price || 0);
-
-  if (value <= 8) return "cheap";
-  if (value <= 18) return "mid";
-  return "premium";
-};
-
-const countMatches = (keywords, fields) => {
-  let count = 0;
-
-  for (const keyword of keywords) {
-    if (fields.some((field) => field.includes(keyword))) {
-      count += 1;
-    }
-  }
-
-  return count;
 };
 
 export const getRecommendationsByMenuItem = catchAsync(async (req, res) => {
@@ -193,7 +229,16 @@ export const getRecommendationsByMenuItem = catchAsync(async (req, res) => {
       score += 6;
     }
 
+    if (
+      item.cuisine &&
+      currentItem.cuisine &&
+      item.cuisine.toLowerCase() === currentItem.cuisine.toLowerCase()
+    ) {
+      score += 8;
+    }
+
     score += calculateTagOverlap(currentItem.tags || [], item.tags || []) * 3;
+    score += calculateTagOverlap(currentItem.flavours || [], item.flavours || []) * 3;
     score += Number(item.ratingAverage || 0);
     score += Math.min(Number(item.ratingCount || 0) * 0.1, 2);
 
@@ -205,7 +250,7 @@ export const getRecommendationsByMenuItem = catchAsync(async (req, res) => {
 
   const recommendations = scoredItems
     .sort((a, b) => b.recommendationScore - a.recommendationScore)
-    .slice(0, 6);
+    .slice(0, 8);
 
   res.status(200).json({
     success: true,
@@ -213,7 +258,9 @@ export const getRecommendationsByMenuItem = catchAsync(async (req, res) => {
       id: currentItem._id,
       name: currentItem.name,
       category: currentItem.category,
-      tags: currentItem.tags
+      cuisine: currentItem.cuisine,
+      tags: currentItem.tags,
+      flavours: currentItem.flavours
     },
     count: recommendations.length,
     data: recommendations
@@ -226,7 +273,7 @@ export const getTopRatedRecommendations = catchAsync(async (req, res) => {
     ratingCount: { $gt: 0 }
   })
     .sort({ ratingAverage: -1, ratingCount: -1, createdAt: -1 })
-    .limit(6);
+    .limit(8);
 
   res.status(200).json({
     success: true,
@@ -238,13 +285,13 @@ export const getTopRatedRecommendations = catchAsync(async (req, res) => {
 export const getPersonalizedRecommendations = catchAsync(async (req, res) => {
   const orders = await Order.find({ user: req.user._id }).populate(
     "items.menuItem",
-    "name category tags price"
+    "name category cuisine tags flavours price"
   );
 
   if (!orders.length) {
     const fallbackItems = await MenuItem.find({ isAvailable: true })
       .sort({ ratingAverage: -1, ratingCount: -1, createdAt: -1 })
-      .limit(6);
+      .limit(8);
 
     return res.status(200).json({
       success: true,
@@ -255,56 +302,53 @@ export const getPersonalizedRecommendations = catchAsync(async (req, res) => {
     });
   }
 
-  const categoryFrequency = {};
-  const tagFrequency = {};
-  const priceTierFrequency = {};
+  const frequency = {};
 
   for (const order of orders) {
     for (const item of order.items || []) {
       if (!item.menuItem) continue;
 
       const menuItem = item.menuItem;
-      const quantity = Number(item.quantity || 0);
+      const quantity = Number(item.quantity || 1);
 
-      const category = String(menuItem.category || "").toLowerCase();
-      if (category) {
-        categoryFrequency[category] = (categoryFrequency[category] || 0) + quantity;
-      }
-
-      for (const tag of menuItem.tags || []) {
-        const normalizedTag = String(tag).toLowerCase();
-        tagFrequency[normalizedTag] = (tagFrequency[normalizedTag] || 0) + quantity;
-      }
-
-      const priceTier = getPriceTier(menuItem.price);
-      priceTierFrequency[priceTier] = (priceTierFrequency[priceTier] || 0) + quantity;
+      [
+        menuItem.category,
+        menuItem.cuisine,
+        ...(menuItem.tags || []),
+        ...(menuItem.flavours || [])
+      ].forEach((term) => {
+        const key = normalizeText(term);
+        if (key) {
+          frequency[key] = (frequency[key] || 0) + quantity;
+        }
+      });
     }
   }
 
-  const orderedMenuItemIds = orders.flatMap((order) =>
+  const orderedIds = orders.flatMap((order) =>
     (order.items || [])
       .map((item) => item.menuItem?._id?.toString())
       .filter(Boolean)
   );
 
-  const uniqueOrderedIds = [...new Set(orderedMenuItemIds)];
-
   const candidates = await MenuItem.find({
-    _id: { $nin: uniqueOrderedIds },
+    _id: { $nin: unique(orderedIds) },
     isAvailable: true
   });
 
   const scoredItems = candidates.map((item) => {
     let score = 0;
 
-    const category = String(item.category || "").toLowerCase();
-    score += categoryFrequency[category] || 0;
+    [
+      item.category,
+      item.cuisine,
+      ...(item.tags || []),
+      ...(item.flavours || [])
+    ].forEach((term) => {
+      const key = normalizeText(term);
+      score += frequency[key] || 0;
+    });
 
-    for (const tag of item.tags || []) {
-      score += tagFrequency[String(tag).toLowerCase()] || 0;
-    }
-
-    score += priceTierFrequency[getPriceTier(item.price)] || 0;
     score += Number(item.ratingAverage || 0);
     score += Math.min(Number(item.ratingCount || 0) * 0.05, 2);
 
@@ -316,7 +360,7 @@ export const getPersonalizedRecommendations = catchAsync(async (req, res) => {
 
   const recommendations = scoredItems
     .sort((a, b) => b.recommendationScore - a.recommendationScore)
-    .slice(0, 6);
+    .slice(0, 8);
 
   res.status(200).json({
     success: true,
@@ -327,181 +371,44 @@ export const getPersonalizedRecommendations = catchAsync(async (req, res) => {
 });
 
 export const searchRecommendationsByPreference = catchAsync(async (req, res) => {
-  const query = String(req.query.query || "").trim().toLowerCase();
+  const query = String(req.query.query || "").trim();
 
   if (!query) {
     throw new ApiError("Search query is required.", 400);
   }
 
+  const queryWords = getWords(query);
+  const expandedTerms = expandQuery(query);
+
+  if (!expandedTerms.length) {
+    return res.status(200).json({
+      success: true,
+      query,
+      count: 0,
+      data: []
+    });
+  }
+
   const items = await MenuItem.find({ isAvailable: true });
-
-  const rawKeywords = query
-    .split(/\s+/)
-    .map((word) => word.trim().toLowerCase())
-    .filter(Boolean);
-
-  const keywords = expandKeywords(rawKeywords);
-
-  const hasVegetarianIntent = keywords.includes("vegetarian") || keywords.includes("veg");
-  const hasVeganIntent = keywords.includes("vegan") || keywords.includes("plant-based");
-  const hasSweetIntent = keywords.includes("sweet");
-  const hasDessertIntent = keywords.includes("dessert") || keywords.includes("cake");
-  const hasSpicyIntent = keywords.includes("spicy") || keywords.includes("hot");
-  const hasChickenIntent = keywords.includes("chicken");
-  const hasFishIntent = keywords.includes("fish") || keywords.includes("seafood");
-  const wantsCheap = keywords.includes("cheap") || keywords.includes("budget") || keywords.includes("affordable");
-  const wantsPremium = keywords.includes("premium") || keywords.includes("expensive") || keywords.includes("luxury");
-  const wantsDinner = keywords.includes("dinner");
-  const wantsLunch = keywords.includes("lunch");
-  const wantsBreakfast = keywords.includes("breakfast");
 
   const scoredItems = items
     .map((item) => {
-      let score = 0;
-
-      const { name, description, category, tags, combinedText } = normalizeItemForSearch(item);
-
-      const containsNonVegWord = nonVegWords.some((word) => combinedText.includes(word));
-      const containsSweetWord = sweetWords.some((word) => combinedText.includes(word));
-      const containsDessertWord = dessertWords.some((word) => combinedText.includes(word));
-      const containsSpicyWord = spicyWords.some((word) => combinedText.includes(word));
-
-      const isVegetarianTagged =
-        tags.includes("vegetarian") ||
-        tags.includes("veg") ||
-        category.includes("vegetarian") ||
-        category.includes("veg");
-
-      const isVeganTagged =
-        tags.includes("vegan") ||
-        tags.includes("plant-based") ||
-        category.includes("vegan");
-
-      const keywordFieldMatches = countMatches(keywords, [name, description, category, tags.join(" ")]);
-
-      if (hasVegetarianIntent) {
-        if (containsNonVegWord) return null;
-        if (isVegetarianTagged) score += 12;
-      }
-
-      if (hasVeganIntent) {
-        if (containsNonVegWord) return null;
-        if (!isVeganTagged) return null;
-        score += 14;
-      }
-
-      if (hasSweetIntent) {
-        if (containsSweetWord) {
-          score += 10;
-        } else {
-          score -= 10;
-        }
-      }
-
-      if (hasDessertIntent) {
-        if (containsDessertWord) {
-          score += 12;
-        } else {
-          return null;
-        }
-      }
-
-      if (hasSpicyIntent) {
-        if (containsSpicyWord) {
-          score += 10;
-        } else {
-          score -= 8;
-        }
-      }
-
-      if (hasChickenIntent) {
-        if (combinedText.includes("chicken")) {
-          score += 14;
-        } else {
-          return null;
-        }
-      }
-
-      if (hasFishIntent) {
-        if (
-          combinedText.includes("fish") ||
-          combinedText.includes("seafood") ||
-          combinedText.includes("prawn") ||
-          combinedText.includes("shrimp")
-        ) {
-          score += 14;
-        } else {
-          return null;
-        }
-      }
-
-      if (wantsCheap) {
-        const tier = getPriceTier(item.price);
-        if (tier === "cheap") score += 8;
-        if (tier === "mid") score += 2;
-        if (tier === "premium") score -= 8;
-      }
-
-      if (wantsPremium) {
-        const tier = getPriceTier(item.price);
-        if (tier === "premium") score += 8;
-        if (tier === "cheap") score -= 4;
-      }
-
-      if (wantsDinner) {
-        if (dinnerWords.some((word) => combinedText.includes(word))) score += 6;
-        else score -= 3;
-      }
-
-      if (wantsLunch) {
-        if (lunchWords.some((word) => combinedText.includes(word))) score += 6;
-        else score -= 2;
-      }
-
-      if (wantsBreakfast) {
-        if (breakfastWords.some((word) => combinedText.includes(word))) score += 6;
-        else score -= 4;
-      }
-
-      for (const keyword of keywords) {
-        if (tags.includes(keyword)) score += 7;
-        if (name.includes(keyword)) score += 6;
-        if (description.includes(keyword)) score += 4;
-        if (category.includes(keyword)) score += 3;
-      }
-
-      score += Number(item.ratingAverage || 0) * 1.2;
-      score += Math.min(Number(item.ratingCount || 0) * 0.08, 3);
-      score += keywordFieldMatches * 1.5;
-
-      if (rawKeywords.length >= 2 && keywordFieldMatches === 0) {
-        return null;
-      }
-
-      if (rawKeywords.length >= 2 && keywordFieldMatches < 2 && score < 12) {
-        return null;
-      }
-
-      if (rawKeywords.length === 1 && score < 6) {
-        return null;
-      }
+      const result = calculateItemScore(item, queryWords, expandedTerms);
 
       return {
         ...item.toObject(),
-        recommendationScore: Number(score.toFixed(2))
+        recommendationScore: result.score,
+        matchedTerms: result.matchedTerms
       };
     })
-    .filter(Boolean);
-
-  const recommendations = scoredItems
     .filter((item) => item.recommendationScore > 0)
-    .sort((a, b) => b.recommendationScore - a.recommendationScore)
-    .slice(0, 10);
+    .sort((a, b) => b.recommendationScore - a.recommendationScore);
 
   res.status(200).json({
     success: true,
     query,
-    count: recommendations.length,
-    data: recommendations
+    expandedTerms,
+    count: scoredItems.length,
+    data: scoredItems.slice(0, 20)
   });
 });
