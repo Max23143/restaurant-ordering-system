@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderCartPage();
   setupCheckoutForm();
   setupOrderTypeToggle();
+  setupPaymentMethodHint();
 });
 
 function renderCartPage() {
@@ -32,8 +33,16 @@ function renderCartPage() {
           <strong>${formatCurrency(item.price)}</strong>
 
           <div style="margin-top:1rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
-            <input type="number" min="1" value="${item.quantity}" onchange="changeCartQuantity('${item._id}', this.value)" style="max-width:140px;">
-            <button class="btn btn-danger" onclick="removeCartItem('${item._id}')">Remove</button>
+            <input
+              type="number"
+              min="1"
+              value="${item.quantity}"
+              onchange="changeCartQuantity('${item._id}', this.value)"
+              style="max-width:140px;"
+            >
+            <button class="btn btn-danger" onclick="removeCartItem('${item._id}')">
+              Remove
+            </button>
           </div>
         </div>
       </div>
@@ -70,49 +79,113 @@ function setupOrderTypeToggle() {
 
   const toggleDeliveryAddress = () => {
     const isDelivery = orderType.value === "delivery";
+
     deliveryAddressGroup.classList.toggle("hide", !isDelivery);
-    if (deliveryAddress) deliveryAddress.required = isDelivery;
+
+    if (deliveryAddress) {
+      deliveryAddress.required = isDelivery;
+    }
   };
 
   orderType.addEventListener("change", toggleDeliveryAddress);
   toggleDeliveryAddress();
 }
 
-async function submitOrder(event) {
-  event.preventDefault();
-  hideMessage("checkoutMessage");
+function setupPaymentMethodHint() {
+  const paymentMethod = document.getElementById("paymentMethod");
+  const hint = document.getElementById("paymentMethodHint");
 
-  if (!getToken()) {
-    showMessage("checkoutMessage", "Please log in before placing an order.", "error");
-    return;
-  }
+  if (!paymentMethod || !hint) return;
 
+  const updateHint = () => {
+    if (paymentMethod.value === "online") {
+      hint.textContent = "Online payment will take you to a card details page before the order is confirmed.";
+    } else {
+      hint.textContent = "Cash orders are confirmed directly from this checkout page.";
+    }
+  };
+
+  paymentMethod.addEventListener("change", updateHint);
+  updateHint();
+}
+
+function buildOrderPayloadFromCheckout() {
   const cart = getCart();
-  if (!cart.length) {
-    showMessage("checkoutMessage", "Your cart is empty.", "error");
-    return;
-  }
 
-  const submitBtn = document.getElementById("checkoutBtn");
-  const orderType = document.getElementById("orderType")?.value || "delivery";
-  const deliveryAddress = document.getElementById("deliveryAddress")?.value.trim() || "";
-
-  if (orderType === "delivery" && !deliveryAddress) {
-    showMessage("checkoutMessage", "Delivery address is required for delivery orders.", "error");
-    return;
-  }
-
-  const payload = {
-    orderType,
+  return {
+    orderType: document.getElementById("orderType")?.value || "delivery",
     paymentMethod: document.getElementById("paymentMethod")?.value || "cash",
-    deliveryAddress,
+    deliveryAddress: document.getElementById("deliveryAddress")?.value.trim() || "",
     specialInstructions: document.getElementById("specialInstructions")?.value.trim() || "",
+
+    /*
+      Important:
+      Only item ID and quantity are sent to the backend.
+      The backend calculates price from MongoDB, so users cannot fake prices from the browser.
+    */
     items: cart.map((item) => ({
       menuItem: item._id,
       quantity: Number(item.quantity || 1)
     }))
   };
+}
 
+function validateCheckoutBeforeSubmit(payload) {
+  const cart = getCart();
+
+  if (!getToken()) {
+    return "Please log in before placing an order.";
+  }
+
+  if (!cart.length) {
+    return "Your cart is empty.";
+  }
+
+  if (payload.orderType === "delivery" && !payload.deliveryAddress) {
+    return "Delivery address is required for delivery orders.";
+  }
+
+  return "";
+}
+
+async function submitOrder(event) {
+  event.preventDefault();
+  hideMessage("checkoutMessage");
+
+  const submitBtn = document.getElementById("checkoutBtn");
+  const payload = buildOrderPayloadFromCheckout();
+  const validationError = validateCheckoutBeforeSubmit(payload);
+
+  if (validationError) {
+    showMessage("checkoutMessage", validationError, "error");
+    return;
+  }
+
+  /*
+    Online payment flow:
+    If the user selects online payment, the order is NOT created yet.
+    The order details are temporarily stored and the user is redirected to payment.html.
+    The order will only be created after the user enters card details and confirms payment.
+  */
+  if (payload.paymentMethod === "online") {
+    const pendingOrder = {
+      payload,
+      cartSnapshot: getCart(),
+      totalItems: getCart().reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+      totalAmount: getCartTotal(),
+      createdAt: new Date().toISOString()
+    };
+
+    localStorage.setItem("pendingOnlineOrder", JSON.stringify(pendingOrder));
+    window.location.href = buildFrontendUrl("payment.html");
+    return;
+  }
+
+  /*
+    Cash payment flow:
+    Cash does not need a separate payment page.
+    The order is created immediately from the cart checkout page.
+  */
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.textContent = "Placing Order...";
@@ -124,11 +197,14 @@ async function submitOrder(event) {
       body: JSON.stringify(payload)
     });
 
-    showMessage("checkoutMessage", "Order placed successfully.", "success");
+    showMessage("checkoutMessage", "Order placed successfully. Payment will be collected in cash.", "success");
+
     saveCart([]);
+    localStorage.removeItem("pendingOnlineOrder");
     renderCartPage();
     event.target.reset();
     setupOrderTypeToggle();
+    setupPaymentMethodHint();
   } catch (error) {
     showMessage("checkoutMessage", error.message || "Failed to place order.", "error");
   } finally {

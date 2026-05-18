@@ -12,7 +12,9 @@
   <main class="container">
     <div class="page-header">
       <h1 class="page-title">Shopping Cart</h1>
-      <p class="page-subtitle">Review selected dishes and place your order.</p>
+      <p class="page-subtitle">
+        Review selected dishes and choose cash or online card payment.
+      </p>
     </div>
 
     <section class="section grid grid-2">
@@ -49,8 +51,12 @@
             <label for="paymentMethod">Payment Method</label>
             <select id="paymentMethod" required>
               <option value="cash">Cash</option>
-              <option value="online">Online</option>
+              <option value="online">Online Card Payment</option>
             </select>
+
+            <p id="paymentMethodHint" class="small" style="margin-top: 0.6rem;">
+              Cash orders are confirmed on this page. Online payment will redirect you to a secure demo card payment page.
+            </p>
           </div>
 
           <div class="form-group full">
@@ -59,7 +65,9 @@
           </div>
 
           <div class="form-group full">
-            <button class="btn btn-primary" id="checkoutBtn" type="submit">Place Order</button>
+            <button class="btn btn-primary" id="checkoutBtn" type="submit">
+              Place Order
+            </button>
           </div>
         </form>
       </aside>

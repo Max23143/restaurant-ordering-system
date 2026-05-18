@@ -14,7 +14,7 @@ import { protect } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 /*
-  Public authentication routes
+  Public auth routes
 */
 router.post("/register", registerUser);
 router.post("/login", loginUser);
@@ -22,7 +22,7 @@ router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
 /*
-  Protected account routes
+  Protected user account routes
 */
 router.get("/me", protect, getMyProfile);
 router.put("/me", protect, updateMyProfile);

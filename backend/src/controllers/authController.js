@@ -9,11 +9,7 @@ import generateToken from "../utils/generateToken.js";
 
 /*
   Strong password rule:
-  - At least 8 characters
-  - 1 lowercase letter
-  - 1 uppercase letter
-  - 1 number
-  - 1 special character
+  The same rule is used for registration and password reset.
 */
 const strongPasswordPattern =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
@@ -74,8 +70,8 @@ export const loginUser = catchAsync(async (req, res) => {
   const normalizedEmail = String(email).toLowerCase().trim();
 
   /*
-    Password has select:false in User model,
-    so we must explicitly select it for login comparison.
+    User.js has password select:false.
+    So we must manually select password for login comparison.
   */
   const user = await User.findOne({ email: normalizedEmail }).select("+password");
 
@@ -186,6 +182,9 @@ export const changeMyPassword = catchAsync(async (req, res) => {
     throw new ApiError("Current password is incorrect.", 401);
   }
 
+  /*
+    User.js pre-save middleware will hash the password automatically.
+  */
   user.password = newPassword;
   await user.save();
 
@@ -199,8 +198,7 @@ export const deleteMyAccount = catchAsync(async (req, res) => {
   const userId = req.user._id;
 
   /*
-    When user deletes account, related orders, bookings,
-    and reviews are deleted to keep the database clean.
+    Related customer data is deleted when the account is deleted.
   */
   await Order.deleteMany({ user: userId });
   await Booking.deleteMany({ user: userId });
@@ -229,35 +227,46 @@ export const forgotPassword = catchAsync(async (req, res) => {
   }
 
   /*
-    Coursework/demo version:
-    This creates a reset link and returns it on the page.
-    It does NOT send email or SMS.
+    Demo PIN reset system:
+    - No email is sent.
+    - No phone/SMS is sent.
+    - Backend creates a 6-digit reset PIN.
+    - Backend stores ONLY hashed PIN in MongoDB.
+    - Frontend receives resetPin and shows it in alert.
   */
-  const resetToken = crypto.randomBytes(32).toString("hex");
-  const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+  const resetPin = String(Math.floor(100000 + Math.random() * 900000));
 
-  user.resetPasswordToken = hashedToken;
+  const hashedPin = crypto
+    .createHash("sha256")
+    .update(resetPin)
+    .digest("hex");
+
+  user.resetPasswordToken = hashedPin;
   user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
   await user.save();
 
-  const resetBaseUrl =
-    process.env.RESET_PASSWORD_BASE_URL ||
-    "http://127.0.0.1:5500/reset-password.html";
-
-  const resetUrl = `${resetBaseUrl}?token=${resetToken}`;
-
+  /*
+    Important:
+    Frontend is expecting response.resetPin.
+    So this response MUST include resetPin.
+  */
   res.status(200).json({
     success: true,
-    message: "Password reset link generated successfully. This demo shows the link on screen instead of sending email or SMS.",
-    resetUrl
+    message: "Reset PIN generated successfully. It expires in 15 minutes.",
+    resetPin,
+    email: user.email
   });
 });
 
 export const resetPassword = catchAsync(async (req, res) => {
-  const { token, password } = req.body;
+  const { email, pin, password } = req.body;
 
-  if (!token || !password) {
-    throw new ApiError("Reset token and new password are required.", 400);
+  if (!email || !pin || !password) {
+    throw new ApiError("Email, reset PIN, and new password are required.", 400);
+  }
+
+  if (!/^\d{6}$/.test(String(pin).trim())) {
+    throw new ApiError("Reset PIN must be a 6-digit code.", 400);
   }
 
   if (!strongPasswordPattern.test(password)) {
@@ -267,17 +276,30 @@ export const resetPassword = catchAsync(async (req, res) => {
     );
   }
 
-  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+  const normalizedEmail = String(email).toLowerCase().trim();
+
+  /*
+    User enters PIN.
+    We hash entered PIN and compare it with hashed PIN saved in MongoDB.
+  */
+  const hashedPin = crypto
+    .createHash("sha256")
+    .update(String(pin).trim())
+    .digest("hex");
 
   const user = await User.findOne({
-    resetPasswordToken: hashedToken,
+    email: normalizedEmail,
+    resetPasswordToken: hashedPin,
     resetPasswordExpires: { $gt: new Date() }
   }).select("+password");
 
   if (!user) {
-    throw new ApiError("Reset token is invalid or expired.", 400);
+    throw new ApiError("Reset PIN is invalid or expired.", 400);
   }
 
+  /*
+    Setting password then saving triggers User.js password hashing.
+  */
   user.password = password;
   user.resetPasswordToken = "";
   user.resetPasswordExpires = null;
@@ -285,6 +307,6 @@ export const resetPassword = catchAsync(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: "Password reset successfully."
+    message: "Password reset successfully. You can now log in."
   });
 });

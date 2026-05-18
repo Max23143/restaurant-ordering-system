@@ -1121,3 +1121,21 @@ select option {
   color: var(--muted);
   line-height: 1.6;
 }
+
+/* Online payment page */
+.payment-summary-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 1.2rem;
+}
+
+.payment-summary-card p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+#paymentForm input {
+  letter-spacing: 0.02em;
+}

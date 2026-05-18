@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RestaurantHub - Online Payment</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="container">
+    <div class="page-header">
+      <h1 class="page-title">Online Card Payment</h1>
+      <p class="page-subtitle">
+        Enter demo card details to confirm your online payment and place the order.
+      </p>
+    </div>
+
+    <section class="section grid grid-2">
+      <div>
+        <h2 class="section-title">Order Summary</h2>
+        <div id="paymentOrderSummary" class="list"></div>
+      </div>
+
+      <aside class="form-card">
+        <h2 class="section-title">Card Details</h2>
+
+        <div id="paymentMessage" class="message hide"></div>
+
+        <p class="small" style="margin-bottom: 1rem;">
+          This is a simulated payment page for the final year project. Do not enter real card details.
+        </p>
+
+        <form id="paymentForm" class="form-grid" novalidate>
+          <div class="form-group full">
+            <label for="cardHolderName">Card Holder Name</label>
+            <input id="cardHolderName" type="text" placeholder="Example: Test Customer" required>
+          </div>
+
+          <div class="form-group full">
+            <label for="cardNumber">Card Number</label>
+            <input id="cardNumber" type="text" maxlength="19" placeholder="4242 4242 4242 4242" required>
+          </div>
+
+          <div class="form-group">
+            <label for="expiryMonth">Expiry Month</label>
+            <input id="expiryMonth" type="text" maxlength="2" placeholder="MM" required>
+          </div>
+
+          <div class="form-group">
+            <label for="expiryYear">Expiry Year</label>
+            <input id="expiryYear" type="text" maxlength="4" placeholder="YYYY" required>
+          </div>
+
+          <div class="form-group full">
+            <label for="cvv">CVV</label>
+            <input id="cvv" type="password" maxlength="4" placeholder="123" required>
+          </div>
+
+          <div class="form-group full">
+            <button class="btn btn-primary" id="confirmPaymentBtn" type="submit">
+              Confirm Payment & Place Order
+            </button>
+          </div>
+
+          <div class="form-group full">
+            <a class="btn btn-secondary" href="cart.html">
+              Back to Cart
+            </a>
+          </div>
+        </form>
+      </aside>
+    </section>
+  </main>
+
+  <div id="footer"></div>
+
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/payment.js"></script>
+</body>
+</html>

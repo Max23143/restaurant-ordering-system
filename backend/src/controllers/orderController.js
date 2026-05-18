@@ -20,6 +20,12 @@ export const createOrder = catchAsync(async (req, res) => {
   const preparedItems = [];
   let totalAmount = 0;
 
+  /*
+    Important security logic:
+    The frontend sends only menuItem ID and quantity.
+    The backend fetches the real menu item price from MongoDB.
+    This prevents the user from editing frontend price values.
+  */
   for (const item of items) {
     if (!item.menuItem || !item.quantity) {
       throw new ApiError("Each order item must include menuItem and quantity.", 400);
@@ -58,6 +64,11 @@ export const createOrder = catchAsync(async (req, res) => {
   const finalOrderType = orderType || "delivery";
   const finalPaymentMethod = paymentMethod || "cash";
 
+  const validPaymentMethods = ["cash", "online", "card"];
+  if (!validPaymentMethods.includes(finalPaymentMethod)) {
+    throw new ApiError("Payment method must be cash or online.", 400);
+  }
+
   if (finalOrderType === "delivery" && !deliveryAddress) {
     throw new ApiError("Delivery address is required for delivery orders.", 400);
   }
@@ -68,7 +79,26 @@ export const createOrder = catchAsync(async (req, res) => {
     paymentStatus: "pending"
   };
 
-  if (finalPaymentMethod === "card") {
+  /*
+    Cash payment:
+    No card details are required.
+    Payment status remains pending because customer pays on collection/delivery.
+  */
+  if (finalPaymentMethod === "cash") {
+    safePaymentDetails = {
+      cardHolderName: "",
+      cardLast4: "",
+      paymentStatus: "pending"
+    };
+  }
+
+  /*
+    Online/card payment:
+    Card details are required.
+    Full card number and CVV are NEVER stored in MongoDB.
+    Only the last 4 digits are stored for evidence/reference.
+  */
+  if (finalPaymentMethod === "online" || finalPaymentMethod === "card") {
     const cardHolderName = String(paymentDetails?.cardHolderName || "").trim();
     const cardNumber = String(paymentDetails?.cardNumber || "").replace(/\s+/g, "");
     const expiryMonth = String(paymentDetails?.expiryMonth || "").trim();
@@ -76,7 +106,7 @@ export const createOrder = catchAsync(async (req, res) => {
     const cvv = String(paymentDetails?.cvv || "").trim();
 
     if (!cardHolderName || !cardNumber || !expiryMonth || !expiryYear || !cvv) {
-      throw new ApiError("Complete card details are required for card payments.", 400);
+      throw new ApiError("Complete card details are required for online payments.", 400);
     }
 
     if (!/^\d{16}$/.test(cardNumber)) {
@@ -98,22 +128,6 @@ export const createOrder = catchAsync(async (req, res) => {
     safePaymentDetails = {
       cardHolderName,
       cardLast4: cardNumber.slice(-4),
-      paymentStatus: "paid"
-    };
-  }
-
-  if (finalPaymentMethod === "cash") {
-    safePaymentDetails = {
-      cardHolderName: "",
-      cardLast4: "",
-      paymentStatus: "pending"
-    };
-  }
-
-  if (finalPaymentMethod === "online") {
-    safePaymentDetails = {
-      cardHolderName: "",
-      cardLast4: "",
       paymentStatus: "paid"
     };
   }

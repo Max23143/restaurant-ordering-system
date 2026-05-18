@@ -49,7 +49,7 @@ function buildFullPhoneNumber(countryCode, localPhone) {
 
 /*
   Password strength checker:
-  This gives live feedback while the user types.
+  Shows live password guidance while user types.
 */
 function evaluatePassword(password) {
   const rules = {
@@ -231,9 +231,9 @@ async function registerUser(event) {
 
 /*
   Forgot password PIN flow:
-  1. User enters email.
-  2. Backend generates a 6-digit reset PIN.
-  3. Frontend shows the PIN in alert.
+  1. Frontend sends account email to backend.
+  2. Backend returns resetPin.
+  3. Frontend shows resetPin in alert.
   4. User is redirected to reset-password.html.
 */
 async function generateResetPin(event) {
@@ -257,14 +257,14 @@ async function generateResetPin(event) {
       body: JSON.stringify({ email })
     });
 
+    console.log("Forgot password backend response:", response);
+
     if (!response.resetPin) {
-      throw new Error("Reset PIN was not returned by the server.");
+      throw new Error(
+        "Reset PIN was not returned by the server. Backend is still returning old response. Restart backend and check authController.js."
+      );
     }
 
-    /*
-      For the project demo, the reset PIN is shown in an alert.
-      It is not sent by email or phone.
-    */
     alert(`Your reset PIN is: ${response.resetPin}`);
 
     window.location.href = buildFrontendUrl(
@@ -292,8 +292,8 @@ function prefillResetPasswordEmail() {
 }
 
 /*
-  Reset password flow:
-  User enters email + reset PIN + new strong password.
+  Reset password:
+  User enters email, 6-digit PIN, and new password.
 */
 async function submitResetPassword(event) {
   event.preventDefault();
