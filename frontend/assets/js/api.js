@@ -1,7 +1,66 @@
+/*
+  API CONFIGURATION FILE
+
+  This file controls how the frontend connects to the backend API.
+
+  Local development:
+  - If the frontend is running on localhost/127.0.0.1, it uses local backend:
+    http://127.0.0.1:5000/api
+
+  Deployed frontend:
+  - If the frontend is running on Cloudflare, it uses the Render backend:
+    https://restaurant-ordering-backend-vmw0.onrender.com/api
+
+  Important:
+  - The old code used only localhost.
+  - That caused "Failed to fetch" on Cloudflare because Cloudflare users cannot access your local PC backend.
+*/
+
+const LOCAL_API_BASE_URL = "http://127.0.0.1:5000/api";
+const DEPLOYED_API_BASE_URL = "https://restaurant-ordering-backend-vmw0.onrender.com/api";
+
+/*
+  Checks whether the frontend is running locally or deployed online.
+*/
+const isLocalFrontend =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
+/*
+  Reads optional custom API URL from localStorage.
+
+  Safety fix:
+  - If the website is deployed online but localStorage still has localhost saved,
+    we remove it because it would break Cloudflare deployment.
+*/
+function getStoredApiBaseUrl() {
+  const storedApiBaseUrl = localStorage.getItem("apiBaseUrl") || "";
+
+  const storedUrlIsLocalhost =
+    storedApiBaseUrl.includes("127.0.0.1") ||
+    storedApiBaseUrl.includes("localhost");
+
+  if (!isLocalFrontend && storedUrlIsLocalhost) {
+    localStorage.removeItem("apiBaseUrl");
+    return "";
+  }
+
+  return storedApiBaseUrl;
+}
+
+/*
+  Final backend API URL used by every fetch request.
+
+  Priority:
+  1. window.RESTAURANT_API_BASE_URL, if manually set
+  2. localStorage apiBaseUrl, if saved
+  3. Local backend if running locally
+  4. Render backend if running online
+*/
 const API_BASE_URL = (
   window.RESTAURANT_API_BASE_URL ||
-  localStorage.getItem("apiBaseUrl") ||
-  "http://127.0.0.1:5000/api"
+  getStoredApiBaseUrl() ||
+  (isLocalFrontend ? LOCAL_API_BASE_URL : DEPLOYED_API_BASE_URL)
 ).replace(/\/$/, "");
 
 function getToken() {
@@ -35,24 +94,43 @@ function clearSession() {
   localStorage.removeItem("user");
 }
 
+/*
+  Builds correct frontend page links.
+
+  This helps the project work in:
+  - local folder structure
+  - GitHub Pages style paths
+  - Cloudflare deployment root
+*/
 function buildFrontendUrl(fileName) {
   const currentPath = window.location.pathname;
   const frontendRoot = "/restaurant-ordering-system/frontend/";
   const simpleFrontendRoot = "/frontend/";
 
   if (currentPath.includes(frontendRoot)) {
-    const base = currentPath.substring(0, currentPath.indexOf(frontendRoot) + frontendRoot.length);
+    const base = currentPath.substring(
+      0,
+      currentPath.indexOf(frontendRoot) + frontendRoot.length
+    );
     return `${base}${fileName}`;
   }
 
   if (currentPath.includes(simpleFrontendRoot)) {
-    const base = currentPath.substring(0, currentPath.indexOf(simpleFrontendRoot) + simpleFrontendRoot.length);
+    const base = currentPath.substring(
+      0,
+      currentPath.indexOf(simpleFrontendRoot) + simpleFrontendRoot.length
+    );
     return `${base}${fileName}`;
   }
 
   return `/${fileName}`;
 }
 
+/*
+  Normalizes menu item data from MongoDB/backend.
+
+  This prevents frontend errors when some fields are missing.
+*/
 function normalizeMenuItem(item = {}) {
   return {
     _id: item._id || item.id || "",
@@ -103,6 +181,11 @@ function formatDate(value) {
   });
 }
 
+/*
+  Safe GET helper.
+
+  Used mainly by admin dashboard so one failed request does not break everything.
+*/
 async function tryGet(endpoint, fallback = []) {
   try {
     const response = await apiRequest(endpoint);
@@ -121,6 +204,18 @@ async function tryGet(endpoint, fallback = []) {
   }
 }
 
+/*
+  Main API request function.
+
+  Every frontend file uses this to communicate with the backend.
+
+  It automatically:
+  - Adds JSON headers
+  - Adds JWT token if user is logged in
+  - Converts backend JSON response
+  - Shows useful errors
+  - Clears invalid/expired token
+*/
 async function apiRequest(endpoint, options = {}) {
   const headers = {
     "Content-Type": "application/json",
@@ -128,6 +223,7 @@ async function apiRequest(endpoint, options = {}) {
   };
 
   const token = getToken();
+
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -140,6 +236,8 @@ async function apiRequest(endpoint, options = {}) {
       headers
     });
   } catch (networkError) {
+    console.error("Network error:", networkError);
+    console.error("API_BASE_URL being used:", API_BASE_URL);
     throw new Error("Failed to fetch");
   }
 
@@ -160,6 +258,11 @@ async function apiRequest(endpoint, options = {}) {
       `Request failed with status ${response.status}`;
 
     const lower = String(message).toLowerCase();
+
+    /*
+      If token is broken/expired, clear login data.
+      This avoids repeated JWT errors.
+    */
     if (
       lower.includes("invalid signature") ||
       lower.includes("jwt malformed") ||
@@ -207,6 +310,11 @@ function renderStars(rating = 0) {
   return stars;
 }
 
+/*
+  Cart functions.
+
+  Cart is stored in localStorage before the final order is sent to backend.
+*/
 function getCart() {
   const raw = localStorage.getItem("cart");
   if (!raw) return [];
@@ -252,6 +360,7 @@ function updateCartItemQuantity(itemId, quantity) {
         quantity: Math.max(1, Number(quantity || 1))
       };
     }
+
     return item;
   });
 
@@ -271,7 +380,11 @@ function getCartTotal() {
 
 function updateCartCount() {
   const cartCountElements = document.querySelectorAll("[data-cart-count]");
-  const totalItems = getCart().reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+  const totalItems = getCart().reduce(
+    (sum, item) => sum + Number(item.quantity || 0),
+    0
+  );
 
   cartCountElements.forEach((element) => {
     element.textContent = totalItems;
