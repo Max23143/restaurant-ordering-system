@@ -1,0 +1,1061 @@
+{
+  "info": {
+    "_postman_id": "0a25bcf8-5635-486d-8842-475f82d2ab5a",
+    "name": "Restaurant Ordering System API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53832130",
+    "_collection_link": "https://go.postman.co/collection/53832130-0a25bcf8-5635-486d-8842-475f82d2ab5a?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Get data",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWQ1OTYxZjJhMTNiMmQ3MGRkZjYzYjUiLCJpYXQiOjE3NzU2MDc2ODIsImV4cCI6MTc3NjIxMjQ4Mn0.Yhoz2olsDMb0KIgaWoqv5IjbBG5e2xUFWD8aY5o2pfE",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/health",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/auth/register",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"fullName\": \"Test Customer\",\r\n  \"email\": \"testcustomer1@gmail.com\",\r\n  \"phone\": \"+447123456789\",\r\n  \"password\": \"Test@12345\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/auth/register",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/auth/login",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"testcustomer1@gmail.com\",\r\n  \"password\": \"Test@12345\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/auth/login",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/auth/login",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"testcustomer1@gmail.com\",\r\n  \"password\": \"wrongpassword\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/auth/login",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/auth/forgot-password",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"testcustomer1@gmail.com\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/auth/forgot-password",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "auth",
+            "forgot-password"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/auth/reset-password",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"testcustomer1@gmail.com\",\r\n  \"pin\": \"335889\",\r\n  \"password\": \"NewTest@12345\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/auth/reset-password",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "auth",
+            "reset-password"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/menu",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/menu",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "menu"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/menu",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/menu?search=italian",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "menu"
+          ],
+          "query": [
+            {
+              "key": "search",
+              "value": "italian"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/menu",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"name\": \"Fish and Chips\",\r\n  \"description\": \"Traditional English fish and chips served with tartar sauce.\",\r\n  \"category\": \"Main Course\",\r\n  \"cuisine\": \"English\",\r\n  \"flavours\": [\"crispy\", \"mild\"],\r\n  \"price\": 9.99,\r\n  \"image\": \"https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80\",\r\n  \"tags\": [\"english\", \"british\", \"fish\", \"chips\", \"dinner\"],\r\n  \"isAvailable\": true\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/menu",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "menu"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/menu/6a0a555a2762032ec6f10fa5",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"name\": \"Fish and Chips Special\",\r\n  \"description\": \"Updated traditional English fish and chips with crispy fries.\",\r\n  \"category\": \"Main Course\",\r\n  \"cuisine\": \"English\",\r\n  \"flavours\": [\"crispy\", \"mild\", \"salty\"],\r\n  \"price\": 10.99,\r\n  \"tags\": [\"english\", \"british\", \"fish\", \"chips\", \"special\"],\r\n  \"isAvailable\": true\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/menu/6a0a555a2762032ec6f10fa5",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "menu",
+            "6a0a555a2762032ec6f10fa5"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/menu/6a0a555a2762032ec6f10fa5",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/menu/6a0a555a2762032ec6f10fa5",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "menu",
+            "6a0a555a2762032ec6f10fa5"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/bookings",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"fullName\": \"Test Customer\",\r\n  \"email\": \"testcustomer1@gmail.com\",\r\n  \"phone\": \"+447123456789\",\r\n  \"bookingDate\": \"2026-05-25\",\r\n  \"bookingTime\": \"18:30\",\r\n  \"guests\": 2,\r\n  \"notes\": \"Window table please\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/bookings",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "bookings"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/bookings/my-bookings",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/bookings/my-bookings",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "bookings",
+            "my-bookings"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/bookings/my-bookings/6a0a56e02762032ec6f10fae",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"fullName\": \"Test Customer\",\r\n  \"email\": \"testcustomer1@gmail.com\",\r\n  \"phone\": \"+447123456789\",\r\n  \"bookingDate\": \"2026-05-25\",\r\n  \"bookingTime\": \"19:00\",\r\n  \"guests\": 4,\r\n  \"notes\": \"Birthday table please\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/bookings/my-bookings/6a0a56e02762032ec6f10fae",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "bookings",
+            "my-bookings",
+            "6a0a56e02762032ec6f10fae"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/bookings/my-bookings/6a0a56e02762032ec6f10fae",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/bookings/my-bookings/6a0a56e02762032ec6f10fae",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "bookings",
+            "my-bookings",
+            "6a0a56e02762032ec6f10fae"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/orders",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"items\": [\r\n    {\r\n      \"menuItem\": \"69d5a03c2a13b2d70ddf63c4\",\r\n      \"quantity\": 2\r\n    }\r\n  ],\r\n  \"orderType\": \"delivery\",\r\n  \"paymentMethod\": \"cash\",\r\n  \"deliveryAddress\": \"12 Test Street, Leicester\",\r\n  \"specialInstructions\": \"No onions\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/orders",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "orders"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/orders",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"items\": [\r\n    {\r\n      \"menuItem\": \"69d5a03c2a13b2d70ddf63c4\",\r\n      \"quantity\": 1\r\n    }\r\n  ],\r\n  \"orderType\": \"pickup\",\r\n  \"paymentMethod\": \"online\",\r\n  \"deliveryAddress\": \"\",\r\n  \"specialInstructions\": \"Extra sauce\",\r\n  \"paymentDetails\": {\r\n    \"cardHolderName\": \"Test Customer\",\r\n    \"cardNumber\": \"4242424242424242\",\r\n    \"expiryMonth\": \"12\",\r\n    \"expiryYear\": \"2028\",\r\n    \"cvv\": \"123\"\r\n  }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/orders",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "orders"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/orders/my-orders",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/orders/my-orders",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "orders",
+            "my-orders"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/orders/admin/all",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/orders/admin/all",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "orders",
+            "admin",
+            "all"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/orders/admin/6a0a598c2762032ec6f10fc3/status",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"status\": \"confirmed\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/orders/admin/6a0a598c2762032ec6f10fc3/status",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "orders",
+            "admin",
+            "6a0a598c2762032ec6f10fc3",
+            "status"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/reviews",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"menuItem\": \"69efda7d63016b11c1a2d129\",\r\n  \"rating\": 5,\r\n  \"comment\": \"Excellent food and fast service.\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/reviews",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "reviews"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/recommendations/search",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/recommendations/search?query=spicy chicken",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "recommendations",
+            "search"
+          ],
+          "query": [
+            {
+              "key": "query",
+              "value": "spicy chicken"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/events-offers/admin",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"type\": \"offer\",\r\n  \"title\": \"Student Meal Deal\",\r\n  \"description\": \"Students get 20% off selected lunch meals.\",\r\n  \"dateLabel\": \"Monday to Friday\",\r\n  \"timeLabel\": \"12 PM - 3 PM\",\r\n  \"discountLabel\": \"20% OFF\",\r\n  \"image\": \"https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=1200&q=80\",\r\n  \"isActive\": true,\r\n  \"displayOrder\": 1\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/events-offers/admin",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "events-offers",
+            "admin"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/events-offers",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/events-offers?type=offer",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "events-offers"
+          ],
+          "query": [
+            {
+              "key": "type",
+              "value": "offer"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/events-offers",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/events-offers?type=event",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "events-offers"
+          ],
+          "query": [
+            {
+              "key": "type",
+              "value": "event"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/events-offers/admin/6a0a5b622762032ec6f10fe3",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"type\": \"offer\",\r\n  \"title\": \"Updated Student Meal Deal\",\r\n  \"description\": \"Students get 25% off selected lunch meals.\",\r\n  \"dateLabel\": \"Monday to Friday\",\r\n  \"timeLabel\": \"12 PM - 3 PM\",\r\n  \"discountLabel\": \"25% OFF\",\r\n  \"image\": \"https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=1200&q=80\",\r\n  \"isActive\": true,\r\n  \"displayOrder\": 1\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/events-offers/admin/6a0a5b622762032ec6f10fe3",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "events-offers",
+            "admin",
+            "6a0a5b622762032ec6f10fe3"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:5000/api/events-offers/admin/6a0a5b622762032ec6f10fe3",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTBhNTI5ODI3NjIwMzJlYzZmMTBmOWEiLCJpYXQiOjE3NzkwNjE0MDAsImV4cCI6MTc3OTY2NjIwMH0._5CWRsh8Wnc___xX0j2VGcgj2rZ1U1r5egC481cYtQY",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/api/events-offers/admin/6a0a5b622762032ec6f10fe3",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "events-offers",
+            "admin",
+            "6a0a5b622762032ec6f10fe3"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
