@@ -25,7 +25,9 @@ const reviewSchema = new mongoose.Schema(
     },
     isApproved: {
       type: Boolean,
-      default: true
+      // New customer reviews stay pending until the admin approves them.
+      // This keeps the code consistent with the frontend message and admin moderation workflow.
+      default: false
     }
   },
   {
