@@ -77,7 +77,7 @@ export const createReview = catchAsync(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: "Review created successfully",
+    message: "Review submitted successfully. It will appear publicly after admin approval.",
     data: populatedReview
   });
 });
@@ -133,6 +133,8 @@ export const updateMyReview = catchAsync(async (req, res) => {
 
   if (comment !== undefined) {
     review.comment = comment;
+    // Edited customer reviews return to pending so the admin can moderate updated content.
+    review.isApproved = false;
   }
 
   await review.save();
@@ -144,7 +146,7 @@ export const updateMyReview = catchAsync(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: "Review updated successfully",
+    message: "Review updated successfully. It will appear publicly after admin approval.",
     data: updatedReview
   });
 });
