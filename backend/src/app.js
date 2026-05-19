@@ -7,51 +7,37 @@ import errorHandler from "./middleware/errorHandler.js";
 
 const app = express();
 
-
+// Allowed frontend origins are kept in environment variables so the app can run
+// safely in local development and deployment without hardcoding private network IPs.
 const allowedOrigins = [
   process.env.CLIENT_URL,
   process.env.CLIENT_URL_2,
   process.env.CLIENT_URL_3,
-
-  
-  "https://restaurant-ordering-system.p2850751.workers.dev",
-
-  
   "http://127.0.0.1:5500",
-  "http://localhost:5500",
-  "http://172.20.10.5:5500"
+  "http://localhost:5500"
 ].filter(Boolean);
 
 app.use(
   cors({
     origin(origin, callback) {
-      
+      // Allow requests without an origin, for example Postman, curl, or server-to-server checks.
       if (!origin) {
         return callback(null, true);
       }
-
 
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      
       return callback(new Error(`CORS blocked this origin: ${origin}`));
     },
-
-    
     credentials: true
   })
 );
 
 app.use(express.json());
-
-
 app.use(express.urlencoded({ extended: true }));
-
-
 app.use(morgan("dev"));
-
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -60,13 +46,8 @@ app.get("/", (req, res) => {
   });
 });
 
-
 app.use("/api", routes);
-
-
 app.use(notFound);
-
-
 app.use(errorHandler);
 
 export default app;
